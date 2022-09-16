@@ -2,5 +2,5 @@ build/
 fatlib/
 perl5/
 packed.pl
-prog.h
+packed.obj
 test-*
