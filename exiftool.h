@@ -9,14 +9,11 @@
 typedef struct sv *exifdata_t;
 typedef struct interpreter *exiftool_t;
 
-/* for testing */
-DLLEXPORT const char *exiftool_GetFileType(exiftool_t tool, const char *filename);
-
 /* Simplified subset of exiftool methods */
 DLLEXPORT exiftool_t exiftool_Create(void);
 DLLEXPORT void exiftool_Destroy(exiftool_t tool);
 
-DLLEXPORT void exiftool_Options(exiftool_t tool, exifdata_t options);
+DLLEXPORT exifdata_t exiftool_Options(exiftool_t tool, exifdata_t options);
 DLLEXPORT void exiftool_ClearOptions(exiftool_t tool);
 
 DLLEXPORT int exiftool_ExtractInfo(exiftool_t tool, const char *filename, exifdata_t tags);
@@ -39,8 +36,9 @@ DLLEXPORT exifdata_t exiftool_GetGroup(exiftool_t tool, const char *tagname);
 
 /* Wrapper for perl scalar variables */
 DLLEXPORT void exifdata_Destroy(exiftool_t tool, exifdata_t data);
-DLLEXPORT exifdata_t exifdata_CreateUndef(exiftool_t tool);
+DLLEXPORT exifdata_t exifdata_Copy(exiftool_t tool, exifdata_t data);
 DLLEXPORT int exifdata_Type(exifdata_t data);
+DLLEXPORT exifdata_t exifdata_CreateUndef(exiftool_t tool);
 
 DLLEXPORT exifdata_t exifdata_CreateNumber(exiftool_t tool, double num);
 DLLEXPORT double exifdata_Number(exiftool_t tool, exifdata_t data);

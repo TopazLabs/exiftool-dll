@@ -2,26 +2,25 @@
 #include <stdio.h>
 
 int main(int argc, char *argv[]) {
-    if (argc < 2) puts("Usage: ./test <filename>");
+    if (argc < 3) puts("Usage: ./test <readfile> <writefile>");
     exiftool_t tool = exiftool_Create();
-    const char *type = exiftool_GetFileType(tool, argv[1]);
-    printf("File has type %s", type);
-
     int ok = exiftool_ExtractInfo(tool, argv[1], NULL);
-    printf("ExtractInfo return %d", ok);
+    printf("ExtractInfo return %d\n", ok);
 
-    exifdata_t tags = exifdata_CreateList(tool);
-    exifdata_t tag0 = exifdata_CreateString(tool, "Error");
-    exifdata_t tag1 = exifdata_CreateString(tool, "Warning");
-    exifdata_Append(tool, tags, tag0);
-    exifdata_Append(tool, tags, tag1);
+    exifdata_t options = exifdata_CreateList(tool);
+    exifdata_Append(tool, options, exifdata_CreateString(tool, "Duplicates"));
+    exifdata_Append(tool, options, exifdata_CreateNumber(tool, 0));
+    exifdata_Append(tool, options, exifdata_CreateString(tool, "Sort"));
+    exifdata_Append(tool, options, exifdata_CreateString(tool, "File"));
+    exifdata_Append(tool, options, exifdata_CreateString(tool, "Unknown"));
+    exifdata_Append(tool, options, exifdata_CreateNumber(tool, 1));
 
-    exifdata_t info = exiftool_GetInfo(tool, tags);
+    exifdata_t oldOpt = exiftool_Options(tool, options);
+    printf("Old Unknown : %f\n", exifdata_Number(tool, oldOpt));
+    exifdata_Destroy(tool, options);
+    exifdata_Destroy(tool, oldOpt);
 
-    exifdata_Destroy(tool, tags);
-    exifdata_Destroy(tool, tag0);
-    exifdata_Destroy(tool, tag1);
-
+    exifdata_t info = exiftool_GetInfo(tool, NULL);
     exifdata_t foundTags = exiftool_GetTagList(tool, NULL);
 
     for (int i = 0; i < exifdata_Length(tool, foundTags); ++i) {
@@ -29,15 +28,56 @@ int main(int argc, char *argv[]) {
         const char *keyname = exifdata_String(tool, key);
         exifdata_t val = exifdata_Value(tool, info, keyname);
         const char *valname = exifdata_String(tool, val);
-
-        printf("Found %s : %s", keyname, valname);
-        exifdata_Destroy(tool, key);
-        exifdata_Destroy(tool, val);
+        printf("Found %s : %s\n", keyname, valname);
     }
+
+    const char tagname[] = "HistorySoftwareAgent";
+    exifdata_t val = exiftool_GetValue(tool, tagname);
+    exifdata_t id = exiftool_GetTagID(tool, tagname);
+    exifdata_t desc = exiftool_GetDescription(tool, tagname);
+    exifdata_t group = exiftool_GetGroup(tool, tagname);
+
+    printf("%s %s::HistorySoftwareAgent\n",
+        exifdata_String(tool, id), exifdata_String(tool, group));
+    printf("Description: %s\n", exifdata_String(tool, desc));
+    printf("Value: %s\n", exifdata_String(tool, val));
+
+    exifdata_Destroy(tool, group);
+    exifdata_Destroy(tool, desc);
+    exifdata_Destroy(tool, id);
+    exifdata_Destroy(tool, val);
+
+    exifdata_t rules = exifdata_CreateList(tool);
+    exifdata_Append(tool, rules, exifdata_CreateString(tool,
+        "Comment<ISO=$ISO Aperture=$aperture Exposure=$shutterSpeed"));
+    exiftool_SetNewValuesFromFile(tool, argv[1], rules);
+    exifdata_Destroy(tool, rules);
+
+    printf("Set %d new values\n", exiftool_CountNewValues(tool));
+    val = exiftool_GetNewValue(tool, "Comment");
+    printf("New Comment : %s\n", exifdata_String(tool, val));
+    exifdata_Destroy(tool, val);
+
+    int saved = exiftool_SaveNewValues(tool);
+    printf("Saved %d times\n", saved);
+
+    val = exifdata_CreateString(tool, "CQCumbers");
+    int status = exiftool_SetNewValue(tool, "Author", val);
+    printf("SetNewValue returned %d\n", status);
+    exifdata_Destroy(tool, val);
+
+    printf("Set %d new values\n", exiftool_CountNewValues(tool));
+    val = exiftool_GetNewValue(tool, "Author");
+    printf("New Author : %s\n", exifdata_String(tool, val));
+    exifdata_Destroy(tool, val);
+
+    exiftool_RestoreNewValues(tool);
+    printf("Restored %d new values\n", exiftool_CountNewValues(tool));
+    status = exiftool_WriteInfo(tool, argv[2]);
+    printf("WriteInfo returned %d\n", status);
 
     exifdata_Destroy(tool, foundTags);
     exifdata_Destroy(tool, info);
-
     exiftool_Destroy(tool);
     return 0;
 }

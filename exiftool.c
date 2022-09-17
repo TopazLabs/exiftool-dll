@@ -40,27 +40,27 @@ void exiftool_Destroy(exiftool_t tool) {
     perl_free(tool);
 }
 
-const char *exiftool_GetFileType(exiftool_t tool, const char *filename) {
+exifdata_t exiftool_Options(exiftool_t tool, exifdata_t options) {
     dTHXa(tool);
     PERL_SET_CONTEXT(tool);
     dSP;
 
-    SV *file = newSVpv(filename, 0);
+    int has_options = options && SvTYPE(options) == SVt_PVAV;
+    int num_options = has_options ? av_top_index(options) + 1 : 0;
     PUSHMARK(SP);
-    EXTEND(SP, 2);
-    PUSHs(get_sv("main::className", 0));
-    PUSHs(file);
+    EXTEND(SP, 1 + num_options);
+    PUSHs(get_sv("exifTool", 0));
+    for (int i = 0; i < num_options; ++i)
+        PUSHs(*av_fetch((AV*)options, i, 0));
     PUTBACK;
 
-    int ok = call_method("GetFileType", G_SCALAR);
+    int ok = call_method("Options", G_SCALAR);
     SPAGAIN;
-    char *type = ok ? strdup(POPp) : "";
+    SV *value = ok ? POPs : newSV(0);
+    if (SvROK(value)) value = SvRV(value);
+    if (ok) value = SvREFCNT_inc(value);
     PUTBACK;
-    SvREFCNT_dec(file);
-    return type;
-}
-
-void exiftool_Options(exiftool_t tool, exifdata_t options) {
+    return value;
 }
 
 void exiftool_ClearOptions(exiftool_t tool) {
@@ -80,11 +80,13 @@ int exiftool_ExtractInfo(exiftool_t tool, const char *filename, exifdata_t tags)
     PERL_SET_CONTEXT(tool);
     dSP;
 
+    SV *file = newSVpv(filename, 0);
     int has_tags = tags && SvTYPE(tags) == SVt_PVAV;
     SV *ref = has_tags ? newRV_inc(tags) : newSV(0);
     PUSHMARK(SP);
-    EXTEND(SP, 1 + has_tags);
+    EXTEND(SP, 2 + has_tags);
     PUSHs(get_sv("exifTool", 0));
+    PUSHs(file);
     if (has_tags) PUSHs(ref);
     PUTBACK;
 
@@ -93,6 +95,7 @@ int exiftool_ExtractInfo(exiftool_t tool, const char *filename, exifdata_t tags)
     int success = ok ? (int)POPi : 0;
     PUTBACK;
     SvREFCNT_dec(ref);
+    SvREFCNT_dec(file);
     return success;
 }
 
@@ -233,7 +236,7 @@ void exiftool_SetNewValuesFromFile(exiftool_t tool, const char *filename, exifda
     dSP;
 
     int has_tags = tags && SvTYPE(tags) == SVt_PVAV;
-    int num_tags = has_tags ? av_top_index(tags) : 0;
+    int num_tags = has_tags ? av_top_index(tags) + 1 : 0;
     SV *file = newSVpv(filename, 0);
     PUSHMARK(SP);
     EXTEND(SP, 2 + num_tags);
@@ -362,9 +365,9 @@ void exifdata_Destroy(exiftool_t tool, exifdata_t data) {
     SvREFCNT_dec(data);
 }
 
-exifdata_t exifdata_CreateUndef(exiftool_t tool) {
+exifdata_t exifdata_Copy(exiftool_t tool, exifdata_t data) {
     dTHXa(tool);
-    return newSV(0); 
+    return SvREFCNT_inc(data);
 }
 
 int exifdata_Type(exifdata_t data) {
@@ -374,6 +377,11 @@ int exifdata_Type(exifdata_t data) {
     if (type == SVt_PVAV) return 2;
     if (type == SVt_PVHV) return 3;
     return -1;
+}
+
+exifdata_t exifdata_CreateUndef(exiftool_t tool) {
+    dTHXa(tool);
+    return newSV(0);
 }
 
 exifdata_t exifdata_CreateNumber(exiftool_t tool, double num) {
@@ -406,15 +414,15 @@ exifdata_t exifdata_CreateList(exiftool_t tool) {
 
 int exifdata_Length(exiftool_t tool, exifdata_t data) {
     dTHXa(tool);
-    if (SvTYPE(data) != SVt_PVAV) return -1;
-    return av_top_index(data);
+    if (SvTYPE(data) != SVt_PVAV) return 0;
+    return av_top_index(data) + 1;
 }
 
 exifdata_t exifdata_Item(exiftool_t tool, exifdata_t data, int idx) {
     dTHXa(tool);
-    if (SvTYPE(data) != SVt_PVAV) return newSV(0);
+    if (SvTYPE(data) != SVt_PVAV) return &PL_sv_undef;
     SV **item = av_fetch((AV*)data, idx, 0);
-    return item ? SvREFCNT_inc(*item) : newSV(0);
+    return item ? *item : &PL_sv_undef;
 }
 
 void exifdata_Append(exiftool_t tool, exifdata_t data, exifdata_t item) {
@@ -430,13 +438,13 @@ exifdata_t exifdata_CreateHash(exiftool_t tool) {
 
 exifdata_t exifdata_Value(exiftool_t tool, exifdata_t data, const char *key) {
     dTHXa(tool);
-    if (SvTYPE(data) != SVt_PVHV) return newSV(0);
-    SV **value = hv_fetch((HV*)data, key, 0, 0);
-    return value ? SvREFCNT_inc(*value) : newSV(0);
+    if (SvTYPE(data) != SVt_PVHV) return &PL_sv_undef;
+    SV **value = hv_fetch((HV*)data, key, (int)strlen(key), 0);
+    return value ? *value : &PL_sv_undef;
 }
 
 void exifdata_Set(exiftool_t tool, exifdata_t data, const char *key, exifdata_t value) {
     dTHXa(tool);
     if (SvTYPE(data) != SVt_PVHV) return;
-    hv_store((HV*)data, key, 0, value, 0);
+    hv_store((HV*)data, key, (int)strlen(key), value, 0);
 }
