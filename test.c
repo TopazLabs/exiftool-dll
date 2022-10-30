@@ -2,7 +2,7 @@
 #include <stdio.h>
 
 int main(int argc, char *argv[]) {
-    if (argc < 3) puts("Usage: ./test <readfile> <writefile>");
+    if (argc < 3) return puts("Usage: ./test <readfile> <writefile>"), 0;
     exiftool_t tool = exiftool_Create();
     int ok = exiftool_ExtractInfo(tool, argv[1], NULL);
     printf("ExtractInfo return %d\n", ok);

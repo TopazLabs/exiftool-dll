@@ -1,9 +1,7 @@
 perl5/
 exiftool/
-perltidy/
 fatlib/
 build/
-perltidy.pl
 packed.pl
 packed.obj
 test-*

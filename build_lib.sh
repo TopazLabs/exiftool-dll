@@ -1,14 +1,23 @@
 git clone -b 12.44 --depth 1 https://github.com/exiftool/exiftool.git
-git clone -b 20220613.02 --depth 1 https://github.com/perltidy/perltidy.git
-cd perltidy && ../perl5/perl.exe pm2pl -o ../perltidy.pl
 cd ..
 
 shopt -s globstar
 rm -rf fatlib
 cp -r exiftool/lib fatlib
-cp -r perl5/lib/* fatlib
+cp -r perl5/lib/Exporter* fatlib
+cp -r perl5/lib/overload* fatlib
+cp -r perl5/lib/Time fatlib
+cp -r perl5/lib/Win32* fatlib
+cp -r perl5/lib/warnings* fatlib
+cp perl5/lib/Carp.pm fatlib
+cp perl5/lib/Config.pm fatlib
+cp perl5/lib/DynaLoader.pm fatlib
+cp perl5/lib/Fcntl.pm fatlib
+cp perl5/lib/integer.pm fatlib
+cp perl5/lib/strict.pm fatlib
+cp perl5/lib/vars.pm fatlib
+cp perl5/lib/XSLoader.pm fatlib
 chmod -R 777 fatlib
-perl5/perl.exe perltidy.pl -b -bext=// -dac fatlib/*.pm fatlib/**/*.pm
 
 perl5/perl.exe FatPacker.pm file hello_world.pl >packed.pl
 wsl objcopy --input-target binary --output-target pe-x86-64 \

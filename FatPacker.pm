@@ -1,3 +1,19 @@
+package Pod::Strip;
+
+use warnings;
+use strict;
+use base 'Pod::Simple';
+
+sub new {
+  my $new = shift->SUPER::new(@_);
+  $new->{_code_line}=0;
+  $new->code_handler(sub {
+    print {$_[2]{output_fh}} $_[0],"\n";
+    return;
+  });
+  return $new;
+}
+
 package App::FatPacker;
 
 use strict;
@@ -97,8 +113,13 @@ sub load_file {
     local (@ARGV, $/) = ($file);
     <>
   };
+
+  my $parser = Pod::Strip->new;
+  my $stripped;
+  $parser->output_string(\$stripped);
+  $parser->parse_string_document($content);
   close ARGV;
-  return $content;
+  return $stripped;
 }
 
 sub collect_dirs {
@@ -148,9 +169,7 @@ sub fatpack_end {
 
     *{"${class}::INC"} = sub {
       if (my $fat = $_[0]{$_[1]}) {
-        #open my $fh, '<', \$fat
-        #  or die "FatPacker error loading $_[1] (could be a perl installation issue?)";
-        #return $fh;
+        #print($_[1], "\n");
         return sub {
           $fat =~ /\G([^\n]*\n?)/g or return 0;
           $_ = $1;
