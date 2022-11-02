@@ -1,9 +1,13 @@
 #pragma once
 
-#ifdef EXIFTOOL_EXPORTS
-#    define DLLEXPORT __declspec(dllexport)
+#ifdef _WIN32
+#    ifdef EXIFTOOL_EXPORTS
+#        define DLLEXPORT __declspec(dllexport)
+#    else
+#        define DLLEXPORT __declspec(dllimport)
+#    endif
 #else
-#    define DLLEXPORT __declspec(dllimport)
+#    define DLLEXPORT
 #endif
 
 typedef struct sv *exifdata_t;

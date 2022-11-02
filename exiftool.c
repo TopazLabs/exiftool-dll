@@ -6,9 +6,9 @@
 #include <EXTERN.h>
 #include <perl.h>
 
-/* defined in packed.obj by objcopy */
-extern unsigned char _binary_packed_pl_start[];
-extern unsigned char _binary_packed_pl_end[];
+/* defined in packed.obj by bin2obj */
+extern int _packed_pl_size;
+extern char _packed_pl[];
 
 exiftool_t exiftool_Create(void) {
     int argc = 3;
@@ -26,8 +26,7 @@ exiftool_t exiftool_Create(void) {
     perl_construct(tool);
     perl_parse(tool, NULL, argc, argv, NULL);
 
-    SV *code = newSVpv((char*)_binary_packed_pl_start,
-        _binary_packed_pl_end - _binary_packed_pl_start);
+    SV *code = newSVpv(_packed_pl, _packed_pl_size);
     sv_2mortal(code);
     eval_sv(code, G_SCALAR | G_RETHROW);
     return tool;

@@ -1,3 +1,6 @@
 [submodule "perl5"]
 	path = perl5
-	url = https://github.com/Perl/perl5.git
+	url = ../../Perl/perl5.git
+[submodule "exiftool"]
+	path = exiftool
+	url = ../../exiftool/exiftool.git
