@@ -12,7 +12,8 @@ else()
     set(PERL_INCLUDES "${CMAKE_CURRENT_SOURCE_DIR}/perl5")
     set(PERL_STATIC_LIB "${PERL_INCLUDES}/libperl.a")
     set(PERL_EXECUTABLE "${PERL_INCLUDES}/perl")
-    set(PERL_COMMAND ./configure -des -Dusemultiplicity -Dprivlib=${PERL_INCLUDES} && make)
+    set(PERL_COMMAND ./configure -des -Dusemultiplicity
+        -Duserelocatableinc -Dprefix=${PERL_INCLUDES} && make -j)
 endif()
 
 file(MAKE_DIRECTORY ${PERL_INCLUDES})
@@ -34,23 +35,27 @@ if(MSVC)
     target_link_options(perl INTERFACE /NODEFAULTLIB)
 else()
     target_compile_definitions(perl INTERFACE PERL_DARWIN PERL_USE_SFE_PUTENV)
+    target_link_libraries(perl INTERFACE ${PERL_STATIC_LIB})
     target_link_options(perl INTERFACE -mmacosx-version-min=12.2 -fstack-protector-strong)
 endif()
 
 # Pack exiftool module sources
-set(PERL_MODULES Carp.pm Config.pm DynaLoader.pm Fcntl.pm
-    integer.pm strict.pm vars.pm warnings.pm XSLoader.pm)
+set(PERL_MODULES Carp.pm Config.pm DynaLoader.pm Exporter.pm Exporter/Heavy.pm
+    Fcntl.pm integer.pm overload.pm overload/numbers.pm strict.pm Time/HiRes.pm
+    vars.pm warnings.pm warnings/register.pm XSLoader.pm)
 list(TRANSFORM PERL_MODULES PREPEND "perl5/lib/")
 
 add_executable(bin2obj bin2obj.c)
 add_custom_command(OUTPUT packed.obj
-    WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}"
-    COMMAND "${CMAKE_COMMAND}" -E copy_directory exiftool/lib fatlib
-    COMMAND "${CMAKE_COMMAND}" -E copy ${PERL_MODULES} fatlib
-    COMMAND "${PERL_EXECUTABLE}" FatPacker.pm hello_world.pl > packed.pl
+    WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+    COMMAND ${CMAKE_COMMAND} -E copy_directory exiftool/lib fatlib
+    COMMAND ${CMAKE_COMMAND} -E copy ${PERL_MODULES} fatlib
+    COMMAND ${PERL_EXECUTABLE} FatPacker.pm file hello_world.pl > packed.pl
     COMMAND bin2obj packed.pl > packed.obj
-    COMMAND "${CMAKE_COMMAND}" -E rm -r fatlib packed.pl
-    DEPENDS perl bin2obj)
+    COMMAND ${CMAKE_COMMAND} -E rm -r fatlib packed.pl
+    DEPENDS perl bin2obj FatPacker.pm hello_world.pl)
+set_source_files_properties(packed.obj
+    PROPERTIES EXTERNAL_OBJECT true GENERATED true)
 
 # Build exiftool-dll C interface
 add_library(exiftool SHARED exiftool.h exiftool.c packed.obj)
