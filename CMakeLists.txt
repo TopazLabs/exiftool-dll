@@ -3,29 +3,26 @@ project(exiftool VERSION 0.1.0 LANGUAGES C)
 include(ExternalProject)
 
 # Build perl with autotools
+set(PERL_PREFIX "${CMAKE_CURRENT_SOURCE_DIR}/perl5")
+set(PERL_COMMAND "${PERL_PREFIX}/perl")
 if(MSVC)
-    set(PERL_INCLUDES "${CMAKE_CURRENT_SOURCE_DIR}/perl5/lib/CORE")
-    set(PERL_STATIC_LIB "${PERL_INCLUDES}/perl536s.lib")
-    set(PERL_EXECUTABLE "${PERL_INCLUDES}/perl")
-    set(PERL_COMMAND cd win32 && nmake CCTYPE=MSVC142 BUILD_STATIC=define)
+    set(PERL_STATIC_LIB "${PERL_PREFIX}/perl536s.lib")
+    set(PERL_BUILD cd win32 && nmake CCTYPE=MSVC142 BUILD_STATIC=define)
 else()
-    set(PERL_INCLUDES "${CMAKE_CURRENT_SOURCE_DIR}/perl5")
-    set(PERL_STATIC_LIB "${PERL_INCLUDES}/libperl.a")
-    set(PERL_EXECUTABLE "${PERL_INCLUDES}/perl")
-    set(PERL_COMMAND ./configure -des -Dusemultiplicity
-        -Duserelocatableinc -Dprefix=${PERL_INCLUDES} && make -j)
+    set(PERL_STATIC_LIB "${PERL_PREFIX}/libperl.a")
+    set(PERL_BUILD ./configure -des -Dusemultiplicity
+        -Duserelocatableinc -Dprefix=${PERL_PREFIX} && make -j)
 endif()
 
-file(MAKE_DIRECTORY ${PERL_INCLUDES})
 ExternalProject_Add(perl5 # v5.36.0
     SOURCE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/perl5"
     CONFIGURE_COMMAND "" INSTALL_COMMAND ""
-    BUILD_COMMAND ${PERL_COMMAND} BUILD_IN_SOURCE true
-    BUILD_BYPRODUCTS ${PERL_STATIC_LIB} ${PERL_EXECUTABLE})
+    BUILD_COMMAND ${PERL_BUILD} BUILD_IN_SOURCE true
+    BUILD_BYPRODUCTS ${PERL_STATIC_LIB} ${PERL_COMMAND})
 
 # Create imported target for perl
 add_library(perl INTERFACE IMPORTED GLOBAL)
-target_include_directories(perl INTERFACE ${PERL_INCLUDES})
+target_include_directories(perl INTERFACE ${PERL_PREFIX} "${PERL_PREFIX}/lib/CORE")
 target_compile_definitions(perl INTERFACE MULTIPLICITY)
 if(MSVC)
     target_compile_definitions(perl INTERFACE PERL_IMPLICIT_SYS PERLDLL)
@@ -43,17 +40,19 @@ endif()
 set(PERL_MODULES Carp.pm Config.pm DynaLoader.pm Exporter.pm Exporter/Heavy.pm
     Fcntl.pm integer.pm overload.pm overload/numbers.pm strict.pm Time/HiRes.pm
     vars.pm warnings.pm warnings/register.pm XSLoader.pm)
-list(TRANSFORM PERL_MODULES PREPEND "perl5/lib/")
+list(TRANSFORM PERL_MODULES PREPEND "${PERL_PREFIX}/lib/")
+
+set(EXIFTOOL "${CMAKE_CURRENT_SOURCE_DIR}/exiftool/lib")
+set(FATPACKER "${CMAKE_CURRENT_SOURCE_DIR}/FatPacker.pm")
+set(LOADER "${CMAKE_CURRENT_SOURCE_DIR}/loader.pl")
 
 add_executable(bin2obj bin2obj.c)
 add_custom_command(OUTPUT packed.obj
-    WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
-    COMMAND ${CMAKE_COMMAND} -E copy_directory exiftool/lib fatlib
+    COMMAND ${CMAKE_COMMAND} -E copy_directory ${EXIFTOOL} fatlib
     COMMAND ${CMAKE_COMMAND} -E copy ${PERL_MODULES} fatlib
-    COMMAND ${PERL_EXECUTABLE} FatPacker.pm file hello_world.pl > packed.pl
+    COMMAND ${PERL_COMMAND} ${FATPACKER} ${LOADER} > packed.pl
     COMMAND bin2obj packed.pl > packed.obj
-    COMMAND ${CMAKE_COMMAND} -E rm -r fatlib packed.pl
-    DEPENDS perl bin2obj FatPacker.pm hello_world.pl)
+    DEPENDS perl bin2obj ${FATPACKER} ${LOADER})
 set_source_files_properties(packed.obj
     PROPERTIES EXTERNAL_OBJECT true GENERATED true)
 

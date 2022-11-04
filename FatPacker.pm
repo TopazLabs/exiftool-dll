@@ -70,13 +70,7 @@ sub new {
 sub run_script {
   my ($self, $args) = @_;
   my @args = $args ? @$args : @ARGV;
-  (my $cmd = shift @args || 'help') =~ s/-/_/g;
-
-  if (my $meth = $self->can("script_command_${cmd}")) {
-    $self->$meth(\@args);
-  } else {
-    die "No such command ${cmd}";
-  }
+  $self->script_command_file(\@args);
 }
 
 sub script_command_help {

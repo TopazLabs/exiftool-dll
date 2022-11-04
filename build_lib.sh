@@ -19,7 +19,7 @@ cp perl5/lib/vars.pm fatlib
 cp perl5/lib/XSLoader.pm fatlib
 chmod -R 777 fatlib
 
-perl5/perl.exe FatPacker.pm file hello_world.pl >packed.pl
+perl5/perl.exe FatPacker.pm file loader.pl >packed.pl
 wsl objcopy --input-target binary --output-target pe-x86-64 \
     --binary-architecture i386 packed.pl packed.obj
 

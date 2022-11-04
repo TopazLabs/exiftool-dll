@@ -1,6 +1,10 @@
+#define _CRT_SECURE_NO_WARNINGS
+#include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+
+#pragma pack(1)
 
 /* adapted from mach-o/loader.h */
 struct mach_header {
@@ -63,7 +67,7 @@ static void write_mach(char *name, FILE *embed, uint32_t size) {
     uint32_t head_len = sizeof(struct mach_header);
     uint32_t cmd0_len = sizeof(struct mach_segment) + sizeof(struct mach_section);
     uint32_t cmd1_len = sizeof(struct mach_symtab);
-    uint32_t name_len = strlen(name) + 3;
+    uint32_t name_len = (uint32_t)strlen(name) + 3;
     uint32_t strs_len = (name_len * 2 + 8) & ~3;
 
     uint32_t sym_offset = head_len + cmd0_len + cmd1_len;
@@ -71,7 +75,7 @@ static void write_mach(char *name, FILE *embed, uint32_t size) {
     uint32_t emb_offset = str_offset + strs_len;
 
     /* write out header */
-    struct mach_header header = {};
+    struct mach_header header = {0};
     header.magic = 0xfeedfacf;
 #ifdef __arm64__
     header.cputype = 0x0100000c;
@@ -84,7 +88,7 @@ static void write_mach(char *name, FILE *embed, uint32_t size) {
     fwrite(&header, sizeof(header), 1, stdout);
 
     /* map segment with section of given size */
-    struct mach_segment segment = {};
+    struct mach_segment segment = {0};
     segment.cmd = 0x19;
     segment.cmdsize = cmd0_len;
     segment.vmsize = sizeof(size) + size;
@@ -94,7 +98,7 @@ static void write_mach(char *name, FILE *embed, uint32_t size) {
     segment.nsects = 1;
     fwrite(&segment, sizeof(segment), 1, stdout);
 
-    struct mach_section section = {};
+    struct mach_section section = {0};
     strcpy(section.sectname, "__const");
     strcpy(section.segname, "__TEXT");
     section.size = sizeof(size) + size;
@@ -102,7 +106,7 @@ static void write_mach(char *name, FILE *embed, uint32_t size) {
     fwrite(&section, sizeof(section), 1, stdout);
 
     /* create symbol table */
-    struct mach_symtab symtab = {};
+    struct mach_symtab symtab = {0};
     symtab.cmd = 0x02;
     symtab.cmdsize = cmd1_len;
     symtab.symoff = sym_offset;
@@ -111,7 +115,7 @@ static void write_mach(char *name, FILE *embed, uint32_t size) {
     symtab.strsize = strs_len;
     fwrite(&symtab, sizeof(symtab), 1, stdout);
 
-    struct mach_nlist nlist = {};
+    struct mach_nlist nlist = {0};
     nlist.n_type = 0x0f;
     nlist.n_sect = 1;
     fwrite(&nlist, sizeof(nlist), 1, stdout);
@@ -120,7 +124,7 @@ static void write_mach(char *name, FILE *embed, uint32_t size) {
     fwrite(&nlist, sizeof(nlist), 1, stdout);
 
     /* write out string table */
-    char *strtab = malloc(strs_len);
+    char *strtab = calloc(1, strs_len);
     sprintf(strtab, "__%s_size", name);
     sprintf(strtab + nlist.n_strx, "__%s", name);
     fwrite(strtab, strs_len, 1, stdout);
@@ -128,7 +132,7 @@ static void write_mach(char *name, FILE *embed, uint32_t size) {
 
     /* write out embed data */
     fwrite(&size, sizeof(size), 1, stdout);
-    for (int i = 0; i < size; ++i)
+    for (uint32_t i = 0; i < size; ++i)
         fputc(fgetc(embed), stdout);
 }
 
@@ -166,13 +170,15 @@ struct coff_symtab {
     char numaux;
 };
 
-static void write_coff(char *name, FILE *embed, int32_t size) {
-    uint32_t name_len = strlen(name) + 2;
-    uint32_t strs_len = (name_len * 2 + 8) & ~3;
+static void write_coff(char *name, FILE *embed, uint32_t size) {
+    /* calculate length of headers */
+    uint32_t name_len = (uint32_t)strlen(name) + 2;
+    uint32_t strs_len = 4 + ((name_len * 2 + 8) & ~3);
     uint32_t sym_offset = sizeof(struct coff_header) + sizeof(struct coff_section);
     uint32_t emb_offset = sym_offset + sizeof(struct coff_symtab) * 2 + strs_len;
 
-    struct coff_header header = {};
+    /* write header */
+    struct coff_header header = {0};
     header.nscns = 1;
     header.symptr = sym_offset;
     header.nsyms = 2;
@@ -180,32 +186,34 @@ static void write_coff(char *name, FILE *embed, int32_t size) {
     fwrite(&header, sizeof(header), 1, stdout);
 
     /* map section of given size */
-    struct coff_section section = {};
-    strcpy(section.name, ".data");
+    struct coff_section section = {0};
+    strcpy(section.name, ".rdata");
     section.size = sizeof(size) + size;
     section.scnptr = emb_offset;
-    section.flags = 0x40500040;
+    section.flags = 0x40300040;
     fwrite(&section, sizeof(section), 1, stdout);
 
     /* create symbol table */
-    struct coff_symtab symtab = {};
+    struct coff_symtab symtab = {0};
+    symtab.nameptr = sizeof(strs_len);
     symtab.scnum = 1;
     symtab.sclass = 0x02;
     fwrite(&symtab, sizeof(symtab), 1, stdout);
-    symtab.nameptr = name_len + 5;
+    symtab.nameptr += name_len + 5;
     symtab.value = sizeof(size);
     fwrite(&symtab, sizeof(symtab), 1, stdout);
 
     /* write out string table */
-    char *strtab = malloc(strs_len);
-    sprintf(strtab, "__%s_size", name);
-    sprintf(strtab + symtab.nameptr, "__%s", name);
+    char *strtab = calloc(1, strs_len);
+    memcpy(strtab, &strs_len, sizeof(strs_len));
+    sprintf(strtab + sizeof(strs_len), "_%s_size", name);
+    sprintf(strtab + sizeof(strs_len) + name_len + 5, "_%s", name);
     fwrite(strtab, strs_len, 1, stdout);
     free(strtab);
 
     /* write out embed data */
     fwrite(&size, sizeof(size), 1, stdout);
-    for (int i = 0; i < size; ++i)
+    for (uint32_t i = 0; i < size; ++i)
         fputc(fgetc(embed), stdout);
 }
 

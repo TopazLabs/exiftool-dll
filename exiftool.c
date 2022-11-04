@@ -45,7 +45,7 @@ exifdata_t exiftool_Options(exiftool_t tool, exifdata_t options) {
     dSP;
 
     int has_options = options && SvTYPE(options) == SVt_PVAV;
-    int num_options = has_options ? av_top_index(options) + 1 : 0;
+    int num_options = has_options ? (int)av_top_index(options) + 1 : 0;
     PUSHMARK(SP);
     EXTEND(SP, 1 + num_options);
     PUSHs(get_sv("exifTool", 0));
@@ -235,7 +235,7 @@ void exiftool_SetNewValuesFromFile(exiftool_t tool, const char *filename, exifda
     dSP;
 
     int has_tags = tags && SvTYPE(tags) == SVt_PVAV;
-    int num_tags = has_tags ? av_top_index(tags) + 1 : 0;
+    int num_tags = has_tags ? (int)av_top_index(tags) + 1 : 0;
     SV *file = newSVpv(filename, 0);
     PUSHMARK(SP);
     EXTEND(SP, 2 + num_tags);
@@ -414,7 +414,7 @@ exifdata_t exifdata_CreateList(exiftool_t tool) {
 int exifdata_Length(exiftool_t tool, exifdata_t data) {
     dTHXa(tool);
     if (SvTYPE(data) != SVt_PVAV) return 0;
-    return av_top_index(data) + 1;
+    return (int)av_top_index(data) + 1;
 }
 
 exifdata_t exifdata_Item(exiftool_t tool, exifdata_t data, int idx) {
