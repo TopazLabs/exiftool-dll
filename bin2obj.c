@@ -81,6 +81,7 @@ static void write_mach(FILE *out, char *name, FILE *embed, uint32_t size) {
     header.cputype = 0x0100000c;
 #else
     header.cputype = 0x01000007;
+    header.cpusubtype = 0x03;
 #endif
     header.filetype = 1;
     header.ncmds = 2;
