@@ -36,22 +36,21 @@ else()
     target_link_options(perl INTERFACE -mmacosx-version-min=12.2 -fstack-protector-strong)
 endif()
 
-# Pack exiftool module sources
-set(PERL_MODULES Carp.pm Config.pm DynaLoader.pm Exporter.pm Exporter/Heavy.pm
-    Fcntl.pm integer.pm overload.pm overload/numbers.pm strict.pm Time/HiRes.pm
-    vars.pm warnings.pm warnings/register.pm XSLoader.pm)
+# Copy perl modules at configuration step
+set(PERL_MODULES Carp.pm Config.pm DynaLoader.pm Exporter.pm Exporter
+    Fcntl.pm integer.pm overload.pm overloading.pm overload strict.pm
+    Time vars.pm warnings.pm warnings XSLoader.pm)
 list(TRANSFORM PERL_MODULES PREPEND "${PERL_PREFIX}/lib/")
+list(APPEND PERL_MODULES exiftool/lib/File exiftool/lib/Image)
+file(COPY ${PERL_MODULES} DESTINATION fatlib)
 
-set(EXIFTOOL "${CMAKE_CURRENT_SOURCE_DIR}/exiftool/lib")
+# Pack perl sources into object file
+add_executable(bin2obj bin2obj.c)
 set(FATPACKER "${CMAKE_CURRENT_SOURCE_DIR}/FatPacker.pm")
 set(LOADER "${CMAKE_CURRENT_SOURCE_DIR}/loader.pl")
-
-add_executable(bin2obj bin2obj.c)
 add_custom_command(OUTPUT packed.obj
-    COMMAND ${CMAKE_COMMAND} -E copy_directory ${EXIFTOOL} fatlib
-    COMMAND ${CMAKE_COMMAND} -E copy ${PERL_MODULES} fatlib
     COMMAND ${PERL_COMMAND} ${FATPACKER} ${LOADER} > packed.pl
-    COMMAND bin2obj packed.pl > packed.obj
+    COMMAND bin2obj packed.pl packed.obj
     DEPENDS perl bin2obj ${FATPACKER} ${LOADER})
 set_source_files_properties(packed.obj
     PROPERTIES EXTERNAL_OBJECT true GENERATED true)

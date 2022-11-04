@@ -1,5 +1,2 @@
-fatlib/
 build/
-packed.pl
-packed.obj
 test-*

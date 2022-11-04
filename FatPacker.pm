@@ -4,6 +4,8 @@ use warnings;
 use strict;
 use base 'Pod::Simple';
 
+binmode(STDOUT);
+
 sub new {
   my $new = shift->SUPER::new(@_);
   $new->{_code_line}=0;
@@ -181,7 +183,7 @@ sub fatpack_end {
 sub fatpack_code {
   my ($self, $files) = @_;
   my @segments = map {
-    (my $stub = $_) =~ s/\.pm$//;
+    (my $stub = $_) =~ s/\.p[ml]$//;
     my $name = uc join '_', split '/', $stub;
     my $data = $files->{$_}; $data =~ s/^/  /mg; $data =~ s/(?<!\n)\z/\n/;
     '$fatpacked{'.perlstring($_).qq!} = '#line '.(1+__LINE__).' "'.__FILE__."\\"\\n".<<'${name}';\n!
