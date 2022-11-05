@@ -1,9 +1,11 @@
 cmake_minimum_required(VERSION 3.14)
 project(exiftool VERSION 0.1.0 LANGUAGES C)
 include(ExternalProject)
+include(GNUInstallDirs)
 
 # Build perl with autotools
 set(PERL_PREFIX ${CMAKE_CURRENT_SOURCE_DIR}/perl5)
+set(EXIF_PREFIX ${CMAKE_CURRENT_SOURCE_DIR}/exiftool)
 if(MSVC)
     set(PERL_STATIC_LIB ${PERL_PREFIX}/perl536s.lib)
     set(PERL_BUILD cd win32 && nmake CCTYPE=MSVC142 BUILD_STATIC=define)
@@ -40,14 +42,16 @@ set(PERL_MODULES Carp.pm Config.pm DynaLoader.pm Exporter.pm Exporter
     Fcntl.pm integer.pm overload.pm overloading.pm overload strict.pm
     Time vars.pm warnings.pm warnings XSLoader.pm)
 list(TRANSFORM PERL_MODULES PREPEND ${PERL_PREFIX}/lib/)
-list(APPEND PERL_MODULES exiftool/lib/File exiftool/lib/Image)
-file(COPY ${PERL_MODULES} DESTINATION fatlib)
+list(APPEND ${EXIF_PREFIX}/lib/File ${EXIF_PREFIX}/lib/Image)
+file(WRITE ${CMAKE_CURRENT_BINARY_DIR}/cp.cmake
+    "file(COPY ${PERL_MODULES} DESTINATION fatlib)\n")
 
 # Pack perl sources into object file
 add_executable(bin2obj bin2obj.c)
 set(FATPACKER ${CMAKE_CURRENT_SOURCE_DIR}/FatPacker.pm)
 set(LOADER ${CMAKE_CURRENT_SOURCE_DIR}/loader.pl)
 add_custom_command(OUTPUT packed.obj
+    COMMAND ${CMAKE_COMMAND} -P cp.cmake
     COMMAND ${PERL_PREFIX}/perl ${FATPACKER} ${LOADER} > packed.pl
     COMMAND bin2obj packed.pl packed.obj
     DEPENDS perl bin2obj ${FATPACKER} ${LOADER})
@@ -60,3 +64,7 @@ target_compile_definitions(exiftool PRIVATE EXIFTOOL_EXPORTS)
 
 add_executable(test test.c)
 target_link_libraries(test PRIVATE exiftool)
+
+# Install dll and headers
+install(TARGETS exiftool EXPORT exiftool)
+install(FILES exiftool.h DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
