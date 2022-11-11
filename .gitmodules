@@ -1,6 +1,8 @@
 [submodule "perl5"]
 	path = perl5
 	url = ../../Perl/perl5.git
+	shallow = true
 [submodule "exiftool"]
 	path = exiftool
 	url = ../../exiftool/exiftool.git
+	shallow = true
