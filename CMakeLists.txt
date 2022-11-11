@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.14)
+cmake_minimum_required(VERSION 3.19)
 project(exiftool VERSION 0.1.0 LANGUAGES C)
 include(ExternalProject)
 include(GNUInstallDirs)
@@ -61,6 +61,14 @@ set_source_files_properties(packed.obj PROPERTIES EXTERNAL_OBJECT true GENERATED
 add_library(exiftool SHARED exiftool.h exiftool.c packed.obj)
 target_link_libraries(exiftool PRIVATE perl)
 target_compile_definitions(exiftool PRIVATE EXIFTOOL_EXPORTS)
+if(MSVC)
+    file(READ ${EXIF_PREFIX}/META.json EXIF_JSON)
+    string(JSON EXIF_VERSION GET ${EXIF_JSON} version)
+    string(REPLACE "." "," DLL_VERSION ${EXIF_VERSION})
+    target_compile_definitions(exiftool PRIVATE
+        DLL_VERSION=${DLL_VERSION} EXIF_VERSION=${EXIF_VERSION})
+    target_sources(exiftool PRIVATE version.rc)
+endif()
 
 add_executable(test test.c)
 target_link_libraries(test PRIVATE exiftool)
