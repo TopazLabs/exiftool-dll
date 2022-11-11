@@ -23,6 +23,7 @@ ExternalProject_Add(perl5 # v5.36.0
 
 # Create imported target for perl
 add_library(perl INTERFACE IMPORTED GLOBAL)
+add_dependencies(perl perl5)
 target_include_directories(perl INTERFACE ${PERL_PREFIX} ${PERL_PREFIX}/lib/CORE)
 target_compile_definitions(perl INTERFACE MULTIPLICITY)
 if(MSVC)
