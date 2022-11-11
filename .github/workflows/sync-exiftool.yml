@@ -1,0 +1,20 @@
+name: Sync exiftool
+on:
+  schedule: [cron: 0 6 * * 0]
+  workflow_dispatch:
+
+jobs:
+  sync-exiftool:
+    runs-on: macos-latest
+    steps:
+    - uses: actions/checkout@v2
+      with:
+        submodules: recursive
+    - name: Update submodule
+      run: |
+        git config user.name github-actions
+        git config user.email github-actions@github.com
+        git submodule update --remote exiftool
+        if git commit -am "Sync exiftool (automated)"; then
+            git push
+        fi
