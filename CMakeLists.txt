@@ -12,6 +12,8 @@ if(MSVC)
 else()
     set(PERL_STATIC_LIB ${PERL_PREFIX}/libperl.a)
     set(PERL_BUILD ./configure -des -Dusemultiplicity
+        "-Accflags=-arch ${CMAKE_OSX_ARCHITECTURES}"
+        "-Aldflags=-arch ${CMAKE_OSX_ARCHITECTURES}"
         -Dprivlib=${PERL_PREFIX}/lib && make -j)
 endif()
 
