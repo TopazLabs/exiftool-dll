@@ -435,6 +435,20 @@ exifdata_t exifdata_CreateHash(exiftool_t tool) {
     return (SV*)newHV();
 }
 
+void exifdata_RewindKeys(exiftool_t tool, exifdata_t data) {
+    dTHXa(tool);
+    if (SvTYPE(data) != SVt_PVHV) return;
+    hv_iterinit((HV*)data);
+}
+
+const char *exifdata_NextKey(exiftool_t tool, exifdata_t data) {
+    dTHXa(tool);
+    int length = 0;
+    if (SvTYPE(data) != SVt_PVHV) return NULL;
+    HE *entry = hv_iternext((HV*)data);
+    return entry ? hv_iterkey(entry, &length) : NULL;
+}
+
 exifdata_t exifdata_Value(exiftool_t tool, exifdata_t data, const char *key) {
     dTHXa(tool);
     if (SvTYPE(data) != SVt_PVHV) return &PL_sv_undef;

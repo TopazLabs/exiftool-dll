@@ -59,6 +59,8 @@ DLLEXPORT exifdata_t exifdata_Item(exiftool_t tool, exifdata_t data, int idx);
 DLLEXPORT void exifdata_Append(exiftool_t tool, exifdata_t data, exifdata_t item);
 
 DLLEXPORT exifdata_t exifdata_CreateHash(exiftool_t tool);
+DLLEXPORT void exifdata_RewindKeys(exiftool_t tool, exifdata_t data);
+DLLEXPORT const char *exifdata_NextKey(exiftool_t tool, exifdata_t data);
 DLLEXPORT exifdata_t exifdata_Value(exiftool_t tool, exifdata_t data, const char *key);
 DLLEXPORT void exifdata_Set(exiftool_t tool, exifdata_t data, const char *key, exifdata_t value);
 

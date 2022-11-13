@@ -31,6 +31,12 @@ int main(int argc, char *argv[]) {
         printf("Found %s : %s (%d)\n", keyname, valname, exifdata_Type(val));
     }
 
+    const char *keyname = NULL;
+    exifdata_RewindKeys(tool, info);
+    while ((keyname = exifdata_NextKey(tool, info))) {
+        printf("Iterated over %s\n", keyname);
+    }
+
     const char tagname[] = "HistorySoftwareAgent";
     exifdata_t val = exiftool_GetValue(tool, tagname);
     exifdata_t id = exiftool_GetTagID(tool, tagname);
