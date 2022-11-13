@@ -28,7 +28,7 @@ int main(int argc, char *argv[]) {
         const char *keyname = exifdata_String(tool, key);
         exifdata_t val = exifdata_Value(tool, info, keyname);
         const char *valname = exifdata_String(tool, val);
-        printf("Found %s : %s\n", keyname, valname);
+        printf("Found %s : %s (%d)\n", keyname, valname, exifdata_Type(val));
     }
 
     const char tagname[] = "HistorySoftwareAgent";

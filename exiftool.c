@@ -371,8 +371,8 @@ exifdata_t exifdata_Copy(exiftool_t tool, exifdata_t data) {
 
 int exifdata_Type(exifdata_t data) {
     svtype type = SvTYPE(data);
-    if (type & SVf_NOK) return 0;
-    if (type & SVf_POK) return 1;
+    if (SvNIOK(data)) return 0;
+    if (SvPOK(data)) return 1;
     if (type == SVt_PVAV) return 2;
     if (type == SVt_PVHV) return 3;
     return -1;
