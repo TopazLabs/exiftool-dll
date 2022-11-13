@@ -11,10 +11,12 @@ if(MSVC)
     set(PERL_BUILD cd win32 && nmake CCTYPE=MSVC142 BUILD_STATIC=define)
 else()
     set(PERL_STATIC_LIB ${PERL_PREFIX}/libperl.a)
-    set(PERL_BUILD ./configure -des -Dusemultiplicity
-        "-Accflags=-arch ${CMAKE_OSX_ARCHITECTURES}"
-        "-Aldflags=-arch ${CMAKE_OSX_ARCHITECTURES}"
-        -Dprivlib=${PERL_PREFIX}/lib && make -j)
+    set(PERL_BUILD ./configure -des -Dusemultiplicity)
+    if(CMAKE_OSX_ARCHITECTURES)
+        list(APPEND PERL_BUILD "-Accflags=-arch ${CMAKE_OSX_ARCHITECTURES}")
+        list(APPEND PERL_BUILD "-Aldflags=-arch ${CMAKE_OSX_ARCHITECTURES}")
+    endif()
+    list(APPEND PERL_BUILD -Dprivlib=${PERL_PREFIX}/lib && make -j)
 endif()
 
 file(MAKE_DIRECTORY ${PERL_PREFIX}/lib/CORE)
@@ -45,7 +47,7 @@ set(PERL_MODULES Carp.pm Config.pm DynaLoader.pm Exporter.pm Exporter
     Fcntl.pm integer.pm overload.pm overloading.pm overload strict.pm
     Time vars.pm warnings.pm warnings XSLoader.pm)
 list(TRANSFORM PERL_MODULES PREPEND ${PERL_PREFIX}/lib/)
-list(APPEND ${EXIF_PREFIX}/lib/File ${EXIF_PREFIX}/lib/Image)
+list(APPEND PERL_MODULES ${EXIF_PREFIX}/lib/File ${EXIF_PREFIX}/lib/Image)
 file(WRITE ${CMAKE_CURRENT_BINARY_DIR}/cp.cmake
     "file(COPY ${PERL_MODULES} DESTINATION fatlib)\n")
 

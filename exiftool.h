@@ -13,6 +13,10 @@
 typedef struct sv *exifdata_t;
 typedef struct interpreter *exiftool_t;
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 /* Simplified subset of exiftool methods */
 DLLEXPORT exiftool_t exiftool_Create(void);
 DLLEXPORT void exiftool_Destroy(exiftool_t tool);
@@ -57,3 +61,7 @@ DLLEXPORT void exifdata_Append(exiftool_t tool, exifdata_t data, exifdata_t item
 DLLEXPORT exifdata_t exifdata_CreateHash(exiftool_t tool);
 DLLEXPORT exifdata_t exifdata_Value(exiftool_t tool, exifdata_t data, const char *key);
 DLLEXPORT void exifdata_Set(exiftool_t tool, exifdata_t data, const char *key, exifdata_t value);
+
+#ifdef __cplusplus
+}
+#endif
