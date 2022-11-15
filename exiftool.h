@@ -1,4 +1,5 @@
 #pragma once
+#include <stddef.h>
 
 #ifdef _WIN32
 #    ifdef EXIFTOOL_EXPORTS
@@ -9,6 +10,14 @@
 #else
 #    define DLLEXPORT
 #endif
+
+enum {
+    EXIFDATA_NUMBER = 0,
+    EXIFDATA_STRING = 1,
+    EXIFDATA_BUFFER = 2,
+    EXIFDATA_LIST   = 3,
+    EXIFDATA_HASH   = 4
+};
 
 typedef struct sv *exifdata_t;
 typedef struct interpreter *exiftool_t;
@@ -52,6 +61,8 @@ DLLEXPORT exifdata_t exifdata_CreateNumber(exiftool_t tool, double num);
 DLLEXPORT double exifdata_Number(exiftool_t tool, exifdata_t data);
 DLLEXPORT exifdata_t exifdata_CreateString(exiftool_t tool, const char *str);
 DLLEXPORT const char *exifdata_String(exiftool_t tool, exifdata_t data);
+DLLEXPORT exifdata_t exifdata_CreateBuffer(exiftool_t tool, const char *str, size_t len);
+DLLEXPORT const char *exifdata_Buffer(exiftool_t tool, exifdata_t data, size_t *len);
 
 DLLEXPORT exifdata_t exifdata_CreateList(exiftool_t tool);
 DLLEXPORT int exifdata_Length(exiftool_t tool, exifdata_t data);

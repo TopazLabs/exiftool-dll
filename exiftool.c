@@ -373,8 +373,9 @@ int exifdata_Type(exifdata_t data) {
     svtype type = SvTYPE(data);
     if (SvNIOK(data)) return 0;
     if (SvPOK(data)) return 1;
-    if (type == SVt_PVAV) return 2;
-    if (type == SVt_PVHV) return 3;
+    if (SvROK(data)) return 2;
+    if (type == SVt_PVAV) return 3;
+    if (type == SVt_PVHV) return 4;
     return -1;
 }
 
@@ -404,6 +405,18 @@ const char *exifdata_String(exiftool_t tool, exifdata_t data) {
     size_t length = 0;
     if (!SvPOK(data) && !SvNIOK(data)) return "";
     return SvPV(data, length);
+}
+
+exifdata_t exifdata_CreateBuffer(exiftool_t tool, const char *buf, size_t len) {
+    dTHXa(tool);
+    SV *value = newSVpv(buf, len);
+    return newRV_noinc(value);
+}
+
+const char *exifdata_Buffer(exiftool_t tool, exifdata_t data, size_t *len) {
+    dTHXa(tool);
+    if (!SvROK(data)) return *len = 0, "";
+    return SvPV(SvRV(data), *len);
 }
 
 exifdata_t exifdata_CreateList(exiftool_t tool) {

@@ -27,15 +27,21 @@ int main(int argc, char *argv[]) {
         exifdata_t key = exifdata_Item(tool, foundTags, i);
         const char *keyname = exifdata_String(tool, key);
         exifdata_t val = exifdata_Value(tool, info, keyname);
-        const char *valname = exifdata_String(tool, val);
-        printf("Found %s : %s (%d)\n", keyname, valname, exifdata_Type(val));
+        if (exifdata_Type(val) == EXIFDATA_BUFFER) {
+            size_t length = 0;
+            exifdata_Buffer(tool, val, &length);
+            printf("Found %s : (Binary data %zu)\n", keyname, length);
+        } else {
+            const char *valname = exifdata_String(tool, val);
+            printf("Found %s : %s\n", keyname, valname);
+        }
     }
 
     const char *keyname = NULL;
     exifdata_RewindKeys(tool, info);
-    while ((keyname = exifdata_NextKey(tool, info))) {
-        printf("Iterated over %s\n", keyname);
-    }
+    printf("Iterating over keys: ");
+    while ((keyname = exifdata_NextKey(tool, info))) printf("%s ", keyname);
+    printf("\n\n");
 
     const char tagname[] = "HistorySoftwareAgent";
     exifdata_t val = exiftool_GetValue(tool, tagname);
