@@ -43,9 +43,9 @@ else()
 endif()
 
 # Copy perl modules at configuration step
-set(PERL_MODULES Carp.pm Config.pm DynaLoader.pm Exporter.pm Exporter
-    Fcntl.pm integer.pm overload.pm overloading.pm overload strict.pm
-    Time vars.pm warnings.pm warnings XSLoader.pm)
+set(PERL_MODULES Carp.pm Compress Config.pm Digest DynaLoader.pm
+    Exporter.pm Exporter Fcntl.pm integer.pm overload.pm overloading.pm
+    overload strict.pm Time vars.pm warnings.pm warnings XSLoader.pm Win32API)
 list(TRANSFORM PERL_MODULES PREPEND ${PERL_PREFIX}/lib/)
 list(APPEND PERL_MODULES ${EXIF_PREFIX}/lib/File ${EXIF_PREFIX}/lib/Image)
 file(WRITE ${CMAKE_CURRENT_BINARY_DIR}/cp.cmake
