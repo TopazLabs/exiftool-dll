@@ -3,15 +3,25 @@ project(exiftool VERSION 0.1.0 LANGUAGES C)
 include(ExternalProject)
 include(GNUInstallDirs)
 
+set(PERL_MODULES Carp.pm Compress Config.pm Digest DynaLoader.pm Exporter.pm
+    Exporter Fcntl.pm File integer.pm IO List overload.pm overloading.pm
+    overload Scalar strict.pm Time vars.pm warnings.pm warnings XSLoader.pm)
+set(PERL_EXTS Compress/Raw/Zlib Digest/MD5 Fcntl File/Glob IO List/Util Time/HiRes Time/Piece)
+
 # Build perl with autotools
 set(PERL_PREFIX ${CMAKE_CURRENT_SOURCE_DIR}/perl5)
 set(EXIF_PREFIX ${CMAKE_CURRENT_SOURCE_DIR}/exiftool)
 if(MSVC)
+    list(APPEND PERL_MODULES Win32API)
+    list(APPEND PERL_EXTS Win32/API Win32API/File)
+    list(JOIN PERL_EXTS " " PERL_EXTS_STRING)
     set(PERL_STATIC_LIB ${PERL_PREFIX}/perl536s.lib)
-    set(PERL_BUILD cd win32 && nmake CCTYPE=MSVC142 BUILD_STATIC=define)
+    set(PERL_BUILD cd win32 && nmake CCTYPE=MSVC142
+        BUILD_STATIC=define STATIC_EXT=${PERL_EXTS_STRING})
 else()
+    list(JOIN PERL_EXTS " " PERL_EXTS_STRING)
     set(PERL_STATIC_LIB ${PERL_PREFIX}/libperl.a)
-    set(PERL_BUILD ./configure -des -Dusemultiplicity)
+    set(PERL_BUILD ./configure -des -Dusemultiplicity -Dstatic_ext=${PERL_EXTS_STRING})
     if(CMAKE_OSX_ARCHITECTURES)
         list(APPEND PERL_BUILD "-Accflags=-arch ${CMAKE_OSX_ARCHITECTURES}")
         list(APPEND PERL_BUILD "-Aldflags=-arch ${CMAKE_OSX_ARCHITECTURES}")
@@ -20,7 +30,7 @@ else()
 endif()
 
 file(MAKE_DIRECTORY ${PERL_PREFIX}/lib/CORE)
-ExternalProject_Add(perl5 # v5.36.0
+ExternalProject_Add(perl5
     SOURCE_DIR ${PERL_PREFIX} CONFIGURE_COMMAND "" INSTALL_COMMAND ""
     BUILD_COMMAND ${PERL_BUILD} BUILD_IN_SOURCE true
     BUILD_BYPRODUCTS ${PERL_STATIC_LIB} ${PERL_PREFIX}/perl)
@@ -29,26 +39,22 @@ ExternalProject_Add(perl5 # v5.36.0
 add_library(perl INTERFACE IMPORTED GLOBAL)
 add_dependencies(perl perl5)
 target_include_directories(perl INTERFACE ${PERL_PREFIX} ${PERL_PREFIX}/lib/CORE)
-target_compile_definitions(perl INTERFACE MULTIPLICITY)
+list(TRANSFORM PERL_EXTS PREPEND ${PERL_PREFIX}/lib/auto/)
 if(MSVC)
-    target_compile_definitions(perl INTERFACE PERL_IMPLICIT_SYS PERLDLL)
-    target_link_libraries(perl INTERFACE ${PERL_STATIC_LIB}
+    target_compile_definitions(perl INTERFACE MULTIPLICITY PERL_IMPLICIT_SYS PERLDLL)
+    list(TRANSFORM PERL_EXTS REPLACE "([^\/]+)$" "\\1/\\1.lib")
+    target_link_libraries(perl INTERFACE ${PERL_STATIC_LIB} ${PERL_EXTS}
         oldnames.lib kernel32.lib user32.lib advapi32.lib
         comctl32.lib ws2_32.lib ucrt.lib vcruntime.lib libcmt.lib)
     target_link_options(perl INTERFACE /NODEFAULTLIB)
 else()
-    target_compile_definitions(perl INTERFACE PERL_DARWIN PERL_USE_SFE_PUTENV)
-    target_link_libraries(perl INTERFACE ${PERL_STATIC_LIB})
+    target_compile_definitions(perl INTERFACE MULTIPLICITY PERL_DARWIN PERL_USE_SAFE_PUTENV)
+    list(TRANSFORM PERL_EXTS REPLACE "([^\/]+)$" "\\1/\\1.a")
+    target_link_libraries(perl INTERFACE ${PERL_STATIC_LIB} ${PERL_EXTS})
     target_link_options(perl INTERFACE -mmacosx-version-min=12.2 -fstack-protector-strong)
 endif()
 
 # Copy perl modules at configuration step
-set(PERL_MODULES Carp.pm Compress Config.pm Digest DynaLoader.pm
-    Exporter.pm Exporter Fcntl.pm integer.pm overload.pm overloading.pm
-    overload strict.pm Time vars.pm warnings.pm warnings XSLoader.pm)
-if(MSVC)
-    list(APPEND PERL_MODULES Win32API)
-endif()
 list(TRANSFORM PERL_MODULES PREPEND ${PERL_PREFIX}/lib/)
 list(APPEND PERL_MODULES ${EXIF_PREFIX}/lib/File ${EXIF_PREFIX}/lib/Image)
 file(WRITE ${CMAKE_CURRENT_BINARY_DIR}/cp.cmake
@@ -65,8 +71,13 @@ add_custom_command(OUTPUT packed.obj
     DEPENDS perl bin2obj ${FATPACKER} ${LOADER})
 set_source_files_properties(packed.obj PROPERTIES EXTERNAL_OBJECT true GENERATED true)
 
+add_custom_command(OUTPUT perlxsi.c
+    COMMAND ${PERL_PREFIX}/perl -MExtUtils::Embed -e xsinit
+    DEPENDS perl)
+set_source_files_properties(perlxsi.c PROPERTIES GENERATED true)
+
 # Build exiftool-dll C interface
-add_library(exiftool SHARED exiftool.h exiftool.c packed.obj)
+add_library(exiftool SHARED exiftool.h exiftool.c perlxsi.c packed.obj)
 target_link_libraries(exiftool PRIVATE perl)
 target_compile_definitions(exiftool PRIVATE EXIFTOOL_EXPORTS)
 if(MSVC)

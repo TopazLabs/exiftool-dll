@@ -10,6 +10,8 @@
 extern int _packed_pl_size;
 extern char _packed_pl[];
 
+void xs_init(pTHX);
+
 exiftool_t exiftool_Create(void) {
     int argc = 3;
     char *argv[] = { "", "-e", "0" };
@@ -24,7 +26,7 @@ exiftool_t exiftool_Create(void) {
     dTHXa(tool);
     PERL_SET_CONTEXT(tool);
     perl_construct(tool);
-    perl_parse(tool, NULL, argc, argv, NULL);
+    perl_parse(tool, xs_init, argc, argv, NULL);
 
     SV *code = newSVpv(_packed_pl, _packed_pl_size);
     sv_2mortal(code);
