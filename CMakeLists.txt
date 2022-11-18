@@ -12,44 +12,44 @@ set(PERL_EXTS Compress/Raw/Zlib Digest/MD5 Fcntl File/Glob IO List/Util Time/HiR
 set(PERL_PREFIX ${CMAKE_CURRENT_SOURCE_DIR}/perl5)
 set(EXIF_PREFIX ${CMAKE_CURRENT_SOURCE_DIR}/exiftool)
 if(MSVC)
-    list(APPEND PERL_MODULES Win32API)
-    list(APPEND PERL_EXTS Win32/API Win32API/File)
+    list(APPEND PERL_MODULES Win32.pm Win32API)
+    list(APPEND PERL_EXTS Win32API/File)
     list(JOIN PERL_EXTS " " PERL_EXTS_STRING)
-    set(PERL_STATIC_LIB ${PERL_PREFIX}/perl536s.lib)
     set(PERL_BUILD cd win32 && nmake CCTYPE=MSVC142
         BUILD_STATIC=define STATIC_EXT=${PERL_EXTS_STRING})
+    set(PERL_STATIC_LIB ${PERL_PREFIX}/perl536s.lib)
+    list(TRANSFORM PERL_EXTS REPLACE "([^\/]+)$" "\\1/\\1.lib")
 else()
     list(JOIN PERL_EXTS " " PERL_EXTS_STRING)
-    set(PERL_STATIC_LIB ${PERL_PREFIX}/libperl.a)
     set(PERL_BUILD ./configure -des -Dusemultiplicity -Dstatic_ext=${PERL_EXTS_STRING})
     if(CMAKE_OSX_ARCHITECTURES)
         list(APPEND PERL_BUILD "-Accflags=-arch ${CMAKE_OSX_ARCHITECTURES}")
         list(APPEND PERL_BUILD "-Aldflags=-arch ${CMAKE_OSX_ARCHITECTURES}")
     endif()
     list(APPEND PERL_BUILD -Dprivlib=${PERL_PREFIX}/lib && make -j)
+    set(PERL_STATIC_LIB ${PERL_PREFIX}/libperl.a)
+    list(TRANSFORM PERL_EXTS REPLACE "([^\/]+)$" "\\1/\\1.a")
 endif()
 
+list(TRANSFORM PERL_EXTS PREPEND ${PERL_PREFIX}/lib/auto/)
 file(MAKE_DIRECTORY ${PERL_PREFIX}/lib/CORE)
 ExternalProject_Add(perl5
     SOURCE_DIR ${PERL_PREFIX} CONFIGURE_COMMAND "" INSTALL_COMMAND ""
     BUILD_COMMAND ${PERL_BUILD} BUILD_IN_SOURCE true
-    BUILD_BYPRODUCTS ${PERL_STATIC_LIB} ${PERL_PREFIX}/perl)
+    BUILD_BYPRODUCTS ${PERL_STATIC_LIB} ${PERL_EXTS} ${PERL_PREFIX}/perl)
 
 # Create imported target for perl
 add_library(perl INTERFACE IMPORTED GLOBAL)
 add_dependencies(perl perl5)
 target_include_directories(perl INTERFACE ${PERL_PREFIX} ${PERL_PREFIX}/lib/CORE)
-list(TRANSFORM PERL_EXTS PREPEND ${PERL_PREFIX}/lib/auto/)
 if(MSVC)
     target_compile_definitions(perl INTERFACE MULTIPLICITY PERL_IMPLICIT_SYS PERLDLL)
-    list(TRANSFORM PERL_EXTS REPLACE "([^\/]+)$" "\\1/\\1.lib")
     target_link_libraries(perl INTERFACE ${PERL_STATIC_LIB} ${PERL_EXTS}
         oldnames.lib kernel32.lib user32.lib advapi32.lib
         comctl32.lib ws2_32.lib ucrt.lib vcruntime.lib libcmt.lib)
     target_link_options(perl INTERFACE /NODEFAULTLIB)
 else()
     target_compile_definitions(perl INTERFACE MULTIPLICITY PERL_DARWIN PERL_USE_SAFE_PUTENV)
-    list(TRANSFORM PERL_EXTS REPLACE "([^\/]+)$" "\\1/\\1.a")
     target_link_libraries(perl INTERFACE ${PERL_STATIC_LIB} ${PERL_EXTS})
     target_link_options(perl INTERFACE -mmacosx-version-min=12.2 -fstack-protector-strong)
 endif()
