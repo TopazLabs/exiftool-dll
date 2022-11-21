@@ -3,9 +3,9 @@ project(exiftool VERSION 0.1.0 LANGUAGES C)
 include(ExternalProject)
 include(GNUInstallDirs)
 
-set(PERL_MODULES Carp.pm Compress Config.pm Digest DynaLoader.pm Exporter.pm
-    Exporter Fcntl.pm File integer.pm IO List overload.pm overloading.pm
-    overload Scalar strict.pm Time vars.pm warnings.pm warnings XSLoader.pm)
+set(PERL_MODULES bytes.pm Carp.pm Compress Config.pm constant.pm Digest DynaLoader.pm Exporter.pm
+    Exporter Fcntl.pm File integer.pm IO IO.pm List overload.pm overloading.pm overload
+    Scalar SelectSaver.pm strict.pm Symbol.pm Time utf8.pm vars.pm warnings.pm warnings XSLoader.pm)
 set(PERL_EXTS Compress/Raw/Zlib Digest/MD5 Fcntl File/Glob IO List/Util Time/HiRes Time/Piece)
 
 # Build perl with autotools
