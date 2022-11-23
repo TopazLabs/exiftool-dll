@@ -49,7 +49,8 @@ DLLEXPORT void exiftool_RestoreNewValues(exiftool_t tool);
 
 DLLEXPORT exifdata_t exiftool_GetTagID(exiftool_t tool, const char *tagname);
 DLLEXPORT exifdata_t exiftool_GetDescription(exiftool_t tool, const char *tagname);
-DLLEXPORT exifdata_t exiftool_GetGroup(exiftool_t tool, const char *tagname);
+DLLEXPORT exifdata_t exiftool_GetGroup(exiftool_t tool, const char *tagname, const char *family);
+DLLEXPORT exifdata_t exiftool_GetTagName(exiftool_t tool, const char *tagname);
 
 /* Wrapper for perl scalar variables */
 DLLEXPORT void exifdata_Destroy(exiftool_t tool, exifdata_t data);

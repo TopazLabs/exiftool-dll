@@ -43,19 +43,21 @@ int main(int argc, char *argv[]) {
     while ((keyname = exifdata_NextKey(tool, info))) printf("%s ", keyname);
     printf("\n\n");
 
-    const char tagname[] = "HistorySoftwareAgent";
+    const char tagname[] = "ICCProfileName";
     exifdata_t val = exiftool_GetValue(tool, tagname);
     exifdata_t id = exiftool_GetTagID(tool, tagname);
+    exifdata_t name = exiftool_GetTagName(tool, tagname);
     exifdata_t desc = exiftool_GetDescription(tool, tagname);
-    exifdata_t group = exiftool_GetGroup(tool, tagname);
+    exifdata_t group = exiftool_GetGroup(tool, tagname, "0:1");
 
-    printf("%s %s::HistorySoftwareAgent\n",
-        exifdata_String(tool, id), exifdata_String(tool, group));
+    printf("%s %s::%s\n", exifdata_String(tool, id),
+        exifdata_String(tool, group), exifdata_String(tool, name));
     printf("Description: %s\n", exifdata_String(tool, desc));
     printf("Value: %s\n", exifdata_String(tool, val));
 
     exifdata_Destroy(tool, group);
     exifdata_Destroy(tool, desc);
+    exifdata_Destroy(tool, name);
     exifdata_Destroy(tool, id);
     exifdata_Destroy(tool, val);
 

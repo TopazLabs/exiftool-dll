@@ -339,16 +339,18 @@ exifdata_t exiftool_GetDescription(exiftool_t tool, const char *tagname) {
     return desc;
 }
 
-exifdata_t exiftool_GetGroup(exiftool_t tool, const char *tagname) {
+exifdata_t exiftool_GetGroup(exiftool_t tool, const char *tagname, const char *family) {
     dTHXa(tool);
     PERL_SET_CONTEXT(tool);
     dSP;
 
     SV *tag = newSVpv(tagname, 0);
+    SV *ref = family ? newSVpv(family, 0) : newSV(0);
     PUSHMARK(SP);
-    EXTEND(SP, 2);
+    EXTEND(SP, 2 + !!family);
     PUSHs(get_sv("exifTool", 0));
     PUSHs(tag);
+    if (family) PUSHs(ref);
     PUTBACK;
 
     int ok = call_method("GetGroup", G_SCALAR);
@@ -356,7 +358,26 @@ exifdata_t exiftool_GetGroup(exiftool_t tool, const char *tagname) {
     SV *group = ok ? SvREFCNT_inc(POPs) : newSV(0);
     PUTBACK;
     SvREFCNT_dec(tag);
+    SvREFCNT_dec(ref);
     return group;
+}
+
+exifdata_t exiftool_GetTagName(exiftool_t tool, const char *tagname) {
+    dTHXa(tool);
+    PERL_SET_CONTEXT(tool);
+    dSP;
+
+    SV *tag = newSVpv(tagname, 0);
+    PUSHMARK(SP);
+    XPUSHs(tag);
+    PUTBACK;
+
+    int ok = call_pv("GetTagName", G_SCALAR);
+    SPAGAIN;
+    SV *name = ok ? SvREFCNT_inc(POPs) : newSV(0);
+    PUTBACK;
+    SvREFCNT_dec(tag);
+    return name;
 }
 
 /* === exifdata functions === */
