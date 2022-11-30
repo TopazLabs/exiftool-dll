@@ -43,8 +43,8 @@ int main(int argc, char *argv[]) {
     while ((keyname = exifdata_NextKey(tool, info))) printf("%s ", keyname);
     printf("\n\n");
 
-    const char tagname[] = "ICCProfileName";
-    exifdata_t val = exiftool_GetValue(tool, tagname);
+    const char tagname[] = "ImageWidth";
+    exifdata_t val = exiftool_GetValue(tool, tagname, "PrintConv");
     exifdata_t id = exiftool_GetTagID(tool, tagname);
     exifdata_t name = exiftool_GetTagName(tool, tagname);
     exifdata_t desc = exiftool_GetDescription(tool, tagname);
@@ -75,14 +75,19 @@ int main(int argc, char *argv[]) {
     int saved = exiftool_SaveNewValues(tool);
     printf("Saved %d times\n", saved);
 
-    val = exifdata_CreateString(tool, "CQCumbers");
-    int status = exiftool_SetNewValue(tool, "Author", val);
+    val = exifdata_CreateString(tool, "Adobe Standard");
+    options = exifdata_CreateList(tool);
+    exifdata_Append(tool, options, exifdata_CreateString(tool, "Protected"));
+    exifdata_Append(tool, options, exifdata_CreateNumber(tool, 1));
+
+    int status = exiftool_SetNewValue(tool, "EXIF:ProfileName", val, options);
     printf("SetNewValue returned %d\n", status);
     exifdata_Destroy(tool, val);
+    exifdata_Destroy(tool, options);
 
     printf("Set %d new values\n", exiftool_CountNewValues(tool));
-    val = exiftool_GetNewValue(tool, "Author");
-    printf("New Author : %s\n", exifdata_String(tool, val));
+    val = exiftool_GetNewValue(tool, "EXIF:ProfileName");
+    printf("New ProfileName : %s\n", exifdata_String(tool, val));
     exifdata_Destroy(tool, val);
 
     exiftool_RestoreNewValues(tool);

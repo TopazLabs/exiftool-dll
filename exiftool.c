@@ -146,16 +146,18 @@ exifdata_t exiftool_GetTagList(exiftool_t tool, exifdata_t info) {
     return (SV*)tags;
 }
 
-exifdata_t exiftool_GetValue(exiftool_t tool, const char *tagname) {
+exifdata_t exiftool_GetValue(exiftool_t tool, const char *tagname, const char *conv) {
     dTHXa(tool);
     PERL_SET_CONTEXT(tool);
     dSP;
 
     SV *tag = newSVpv(tagname, 0);
+    SV *ref = conv ? newSVpv(conv, 0) : newSV(0);
     PUSHMARK(SP);
-    EXTEND(SP, 2);
+    EXTEND(SP, 2 + !!conv);
     PUSHs(get_sv("exifTool", 0));
     PUSHs(tag);
+    if (conv) PUSHs(ref);
     PUTBACK;
 
     int ok = call_method("GetValue", G_SCALAR);
@@ -165,6 +167,7 @@ exifdata_t exiftool_GetValue(exiftool_t tool, const char *tagname) {
     if (ok) value = SvREFCNT_inc(value);
     PUTBACK;
     SvREFCNT_dec(tag);
+    SvREFCNT_dec(ref);
     return value;
 }
 
@@ -188,18 +191,22 @@ int exiftool_WriteInfo(exiftool_t tool, const char *filename) {
     return success;
 }
 
-int exiftool_SetNewValue(exiftool_t tool, const char *tagname, exifdata_t value) {
+int exiftool_SetNewValue(exiftool_t tool, const char *tagname, exifdata_t value, exifdata_t options) {
     dTHXa(tool);
     PERL_SET_CONTEXT(tool);
     dSP;
 
+    int has_options = options && SvTYPE(options) == SVt_PVAV;
+    int num_options = has_options ? (int)av_top_index(options) + 1 : 0;
     SV *tag = newSVpv(tagname, 0);
     SV *ref = newRV_inc(value);
     PUSHMARK(SP);
-    EXTEND(SP, 3);
+    EXTEND(SP, 3 + num_options);
     PUSHs(get_sv("exifTool", 0));
     PUSHs(tag);
     PUSHs(ref);
+    for (int i = 0; i < num_options; ++i)
+        PUSHs(*av_fetch((AV*)options, i, 0));
     PUTBACK;
 
     int ok = call_method("SetNewValue", G_SCALAR);
