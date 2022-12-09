@@ -196,10 +196,11 @@ int exiftool_SetNewValue(exiftool_t tool, const char *tagname, exifdata_t value,
     PERL_SET_CONTEXT(tool);
     dSP;
 
+    int needs_ref = SvTYPE(value) == SVt_PVAV || SvTYPE(value) == SVt_PVHV;
     int has_options = options && SvTYPE(options) == SVt_PVAV;
     int num_options = has_options ? (int)av_top_index(options) + 1 : 0;
     SV *tag = newSVpv(tagname, 0);
-    SV *ref = newRV_inc(value);
+    SV *ref = needs_ref ? newRV_inc(value) : SvREFCNT_inc(value);
     PUSHMARK(SP);
     EXTEND(SP, 3 + num_options);
     PUSHs(get_sv("exifTool", 0));

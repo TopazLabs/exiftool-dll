@@ -76,6 +76,11 @@ add_custom_command(OUTPUT perlxsi.c
     DEPENDS perl)
 set_source_files_properties(perlxsi.c PROPERTIES GENERATED true)
 
+add_custom_command(OUTPUT p3dci.obj
+    COMMAND bin2obj ${CMAKE_CURRENT_SOURCE_DIR}/p3dci.icc p3dci.obj
+    DEPENDS bin2obj)
+set_source_files_properties(p3dci.obj PROPERTIES EXTERNAL_OBJECT true GENERATED true)
+
 # Build exiftool-dll C interface
 add_library(exiftool SHARED exiftool.h exiftool.c perlxsi.c packed.obj)
 target_link_libraries(exiftool PRIVATE perl)
@@ -89,7 +94,7 @@ if(MSVC)
     target_sources(exiftool PRIVATE version.rc)
 endif()
 
-add_executable(test test.c)
+add_executable(test test.c p3dci.obj)
 target_link_libraries(test PRIVATE exiftool)
 
 # Install dll and headers

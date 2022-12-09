@@ -1,6 +1,10 @@
 #include "exiftool.h"
 #include <stdio.h>
 
+/* defined in p3dci.obj by bin2obj */
+extern int _p3dci_icc_size;
+extern char _p3dci_icc[];
+
 int main(int argc, char *argv[]) {
     if (argc < 3) return puts("Usage: ./test <readfile> <writefile>"), 0;
     exiftool_t tool = exiftool_Create();
@@ -72,15 +76,20 @@ int main(int argc, char *argv[]) {
     printf("New Comment : %s\n", exifdata_String(tool, val));
     exifdata_Destroy(tool, val);
 
-    int saved = exiftool_SaveNewValues(tool);
-    printf("Saved %d times\n", saved);
-
-    val = exifdata_CreateString(tool, "Adobe Standard");
     options = exifdata_CreateList(tool);
     exifdata_Append(tool, options, exifdata_CreateString(tool, "Protected"));
     exifdata_Append(tool, options, exifdata_CreateNumber(tool, 1));
 
-    int status = exiftool_SetNewValue(tool, "EXIF:ProfileName", val, options);
+    val = exifdata_CreateBuffer(tool, _p3dci_icc, _p3dci_icc_size);
+    int status = exiftool_SetNewValue(tool, "ICC_Profile", val, options);
+    printf("SetNewValue returned %d\n", status);
+    exifdata_Destroy(tool, val);
+
+    int saved = exiftool_SaveNewValues(tool);
+    printf("Saved %d times\n", saved);
+
+    val = exifdata_CreateString(tool, "Adobe Standard");
+    status = exiftool_SetNewValue(tool, "EXIF:ProfileName", val, options);
     printf("SetNewValue returned %d\n", status);
     exifdata_Destroy(tool, val);
     exifdata_Destroy(tool, options);
