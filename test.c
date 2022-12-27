@@ -32,9 +32,14 @@ int main(int argc, char *argv[]) {
         const char *keyname = exifdata_String(tool, key);
         exifdata_t val = exifdata_Value(tool, info, keyname);
         if (exifdata_Type(val) == EXIFDATA_BUFFER) {
-            size_t length = 0;
+            size_t length = 0, length2 = 0;
             exifdata_Buffer(tool, val, &length);
             printf("Found %s : (Binary data %zu)\n", keyname, length);
+
+            val = exiftool_GetValue(tool, keyname, "ValueConv");
+            exifdata_Buffer(tool, val, &length2);
+            exifdata_Destroy(tool, val);
+            if (length != length2) printf("Binary GetValue failed\n");
         } else {
             const char *valname = exifdata_String(tool, val);
             printf("Found %s : %s\n", keyname, valname);
@@ -65,20 +70,24 @@ int main(int argc, char *argv[]) {
     exifdata_Destroy(tool, id);
     exifdata_Destroy(tool, val);
 
+    options = exifdata_CreateList(tool);
+    exifdata_Append(tool, options, exifdata_CreateString(tool, "Protected"));
+    exifdata_Append(tool, options, exifdata_CreateNumber(tool, 1));
+
     exifdata_t rules = exifdata_CreateList(tool);
     exifdata_Append(tool, rules, exifdata_CreateString(tool,
         "Comment<ISO=$ISO Aperture=$aperture Exposure=$shutterSpeed"));
-    exiftool_SetNewValuesFromFile(tool, argv[1], rules);
-    exifdata_Destroy(tool, rules);
+    exifdata_Append(tool, rules, options);
+    exifdata_t values = exiftool_SetNewValuesFromFile(tool, argv[1], rules);
+
+    const char *warning = exifdata_String(tool, exifdata_Value(tool, values, "Warning"));
+    printf("SetNewValuesFromFile Warning : %s\n", warning);
+    exifdata_Destroy(tool, values);
 
     printf("Set %d new values\n", exiftool_CountNewValues(tool));
     val = exiftool_GetNewValue(tool, "Comment");
     printf("New Comment : %s\n", exifdata_String(tool, val));
     exifdata_Destroy(tool, val);
-
-    options = exifdata_CreateList(tool);
-    exifdata_Append(tool, options, exifdata_CreateString(tool, "Protected"));
-    exifdata_Append(tool, options, exifdata_CreateNumber(tool, 1));
 
     val = exifdata_CreateBuffer(tool, _p3dci_icc, _p3dci_icc_size);
     int status = exiftool_SetNewValue(tool, "ICC_Profile", val, options);
@@ -92,7 +101,7 @@ int main(int argc, char *argv[]) {
     status = exiftool_SetNewValue(tool, "EXIF:ProfileName", val, options);
     printf("SetNewValue returned %d\n", status);
     exifdata_Destroy(tool, val);
-    exifdata_Destroy(tool, options);
+    exifdata_Destroy(tool, rules);
 
     printf("Set %d new values\n", exiftool_CountNewValues(tool));
     val = exiftool_GetNewValue(tool, "EXIF:ProfileName");

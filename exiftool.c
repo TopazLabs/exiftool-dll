@@ -12,6 +12,21 @@ extern char _packed_pl[];
 
 void xs_init(pTHX);
 
+static exifdata_t unwrap_ref(SV *ref) {
+    int type = SvROK(ref) ? SvTYPE(SvRV(ref)) : 0;
+    int unwrap = type == SVt_PVAV || type == SVt_PVHV;
+    return unwrap ? SvRV(ref) : ref;
+}
+
+static SV *wrap_ref(exiftool_t tool, exifdata_t value) {
+    dTHXa(tool);
+    int type = SvTYPE(value);
+    int wrap = type == SVt_PVAV || type == SVt_PVHV;
+    return wrap ? newRV_noinc(value) : value;
+}
+
+/* === exiftool functions === */
+
 exiftool_t exiftool_Create(void) {
     int argc = 3;
     char *argv[] = { "", "-e", "0" };
@@ -58,8 +73,7 @@ exifdata_t exiftool_Options(exiftool_t tool, exifdata_t options) {
     int ok = call_method("Options", G_SCALAR);
     SPAGAIN;
     SV *value = ok ? POPs : newSV(0);
-    if (SvROK(value)) value = SvRV(value);
-    if (ok) value = SvREFCNT_inc(value);
+    if (ok) value = SvREFCNT_inc(unwrap_ref(value));
     PUTBACK;
     return value;
 }
@@ -163,8 +177,7 @@ exifdata_t exiftool_GetValue(exiftool_t tool, const char *tagname, const char *c
     int ok = call_method("GetValue", G_SCALAR);
     SPAGAIN;
     SV *value = ok ? POPs : newSV(0);
-    if (SvROK(value)) value = SvRV(value);
-    if (ok) value = SvREFCNT_inc(value);
+    if (ok) value = SvREFCNT_inc(unwrap_ref(value));
     PUTBACK;
     SvREFCNT_dec(tag);
     SvREFCNT_dec(ref);
@@ -196,11 +209,10 @@ int exiftool_SetNewValue(exiftool_t tool, const char *tagname, exifdata_t value,
     PERL_SET_CONTEXT(tool);
     dSP;
 
-    int needs_ref = SvTYPE(value) == SVt_PVAV || SvTYPE(value) == SVt_PVHV;
     int has_options = options && SvTYPE(options) == SVt_PVAV;
     int num_options = has_options ? (int)av_top_index(options) + 1 : 0;
     SV *tag = newSVpv(tagname, 0);
-    SV *ref = needs_ref ? newRV_inc(value) : SvREFCNT_inc(value);
+    SV *ref = wrap_ref(tool, SvREFCNT_inc(value));
     PUSHMARK(SP);
     EXTEND(SP, 3 + num_options);
     PUSHs(get_sv("exifTool", 0));
@@ -239,7 +251,7 @@ exifdata_t exiftool_GetNewValue(exiftool_t tool, const char *tagname) {
     return value;
 }
 
-void exiftool_SetNewValuesFromFile(exiftool_t tool, const char *filename, exifdata_t tags) {
+exifdata_t exiftool_SetNewValuesFromFile(exiftool_t tool, const char *filename, exifdata_t tags) {
     dTHXa(tool);
     PERL_SET_CONTEXT(tool);
     dSP;
@@ -255,12 +267,13 @@ void exiftool_SetNewValuesFromFile(exiftool_t tool, const char *filename, exifda
         PUSHs(*av_fetch((AV*)tags, i, 0));
     PUTBACK;
 
-    /* Ignore return value */
     int ok = call_method("SetNewValuesFromFile", G_SCALAR);
     SPAGAIN;
-    if (ok) POPs;
+    SV *info = ok ? POPs : newSV(0);
+    if (ok) info = SvREFCNT_inc(SvRV(info));
     PUTBACK;
     SvREFCNT_dec(file);
+    return info;
 }
 
 int exiftool_CountNewValues(exiftool_t tool) {
@@ -465,13 +478,13 @@ exifdata_t exifdata_Item(exiftool_t tool, exifdata_t data, int idx) {
     dTHXa(tool);
     if (SvTYPE(data) != SVt_PVAV) return &PL_sv_undef;
     SV **item = av_fetch((AV*)data, idx, 0);
-    return item ? *item : &PL_sv_undef;
+    return item ? unwrap_ref(*item) : &PL_sv_undef;
 }
 
 void exifdata_Append(exiftool_t tool, exifdata_t data, exifdata_t item) {
     dTHXa(tool);
     if (SvTYPE(data) != SVt_PVAV) return;
-    av_push((AV*)data, item);
+    av_push((AV*)data, wrap_ref(tool, item));
 }
 
 exifdata_t exifdata_CreateHash(exiftool_t tool) {
@@ -497,11 +510,11 @@ exifdata_t exifdata_Value(exiftool_t tool, exifdata_t data, const char *key) {
     dTHXa(tool);
     if (SvTYPE(data) != SVt_PVHV) return &PL_sv_undef;
     SV **value = hv_fetch((HV*)data, key, (int)strlen(key), 0);
-    return value ? *value : &PL_sv_undef;
+    return value ? unwrap_ref(*value) : &PL_sv_undef;
 }
 
 void exifdata_Set(exiftool_t tool, exifdata_t data, const char *key, exifdata_t value) {
     dTHXa(tool);
     if (SvTYPE(data) != SVt_PVHV) return;
-    hv_store((HV*)data, key, (int)strlen(key), value, 0);
+    hv_store((HV*)data, key, (int)strlen(key), wrap_ref(tool, value), 0);
 }

@@ -42,7 +42,7 @@ DLLEXPORT int exiftool_WriteInfo(exiftool_t tool, const char *filename);
 DLLEXPORT int exiftool_SetNewValue(exiftool_t tool, const char *tagname, exifdata_t value, exifdata_t options);
 DLLEXPORT exifdata_t exiftool_GetNewValue(exiftool_t tool, const char *tagname);
 
-DLLEXPORT void exiftool_SetNewValuesFromFile(exiftool_t tool, const char *filename, exifdata_t tags);
+DLLEXPORT exifdata_t exiftool_SetNewValuesFromFile(exiftool_t tool, const char *filename, exifdata_t tags);
 DLLEXPORT int exiftool_CountNewValues(exiftool_t tool);
 DLLEXPORT int exiftool_SaveNewValues(exiftool_t tool);
 DLLEXPORT void exiftool_RestoreNewValues(exiftool_t tool);
