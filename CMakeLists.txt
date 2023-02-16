@@ -12,7 +12,7 @@ set(PERL_EXTS Compress/Raw/Zlib Digest/MD5 Fcntl File/Glob IO List/Util Time/HiR
 set(PERL_PREFIX ${CMAKE_CURRENT_SOURCE_DIR}/perl5)
 set(EXIF_PREFIX ${CMAKE_CURRENT_SOURCE_DIR}/exiftool)
 if(MSVC)
-    list(APPEND PERL_MODULES Win32.pm Win32API)
+    list(APPEND PERL_MODULES base.pm Config_heavy.pl Tie Win32API)
     list(APPEND PERL_EXTS Win32API/File)
     list(JOIN PERL_EXTS " " PERL_EXTS_STRING)
     set(PERL_BUILD cd win32 && nmake CCTYPE=MSVC142

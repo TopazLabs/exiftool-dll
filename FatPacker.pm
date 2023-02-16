@@ -128,7 +128,7 @@ sub collect_files {
   my ($self, $dir, $files) = @_;
   find(sub {
     return unless -f $_;
-    !/\.(pm|pl)$/ and warn "File ${File::Find::name} isn't a .pm file - can't pack this -- if you hoped we were going to, things may not be what you expected later\n" and return;
+    !/\.(pm|pl|pc)$/ and warn "File ${File::Find::name} isn't a .pm file - can't pack this -- if you hoped we were going to, things may not be what you expected later\n" and return;
     $files->{File::Spec::Unix->abs2rel($File::Find::name,$dir)} =
       $self->load_file($File::Find::name);
   }, $dir);
