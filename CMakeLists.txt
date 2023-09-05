@@ -77,7 +77,7 @@ add_custom_command(OUTPUT perlxsi.c
 set_source_files_properties(perlxsi.c PROPERTIES GENERATED true)
 
 add_custom_command(OUTPUT p3dci.obj
-    COMMAND bin2obj ${CMAKE_CURRENT_SOURCE_DIR}/p3dci.icc p3dci.obj
+    COMMAND "$<TARGET_FILE:bin2obj>" ${CMAKE_CURRENT_SOURCE_DIR}/p3dci.icc p3dci.obj
     DEPENDS bin2obj)
 set_source_files_properties(p3dci.obj PROPERTIES EXTERNAL_OBJECT true GENERATED true)
 
