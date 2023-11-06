@@ -67,7 +67,7 @@ set(LOADER ${CMAKE_CURRENT_SOURCE_DIR}/loader.pl)
 add_custom_command(OUTPUT packed.obj
     COMMAND ${CMAKE_COMMAND} -P cp.cmake
     COMMAND ${PERL_PREFIX}/perl ${FATPACKER} ${LOADER} > packed.pl
-    COMMAND bin2obj packed.pl packed.obj
+    COMMAND "$<TARGET_FILE:bin2obj>" packed.pl packed.obj
     DEPENDS perl bin2obj ${FATPACKER} ${LOADER})
 set_source_files_properties(packed.obj PROPERTIES EXTERNAL_OBJECT true GENERATED true)
 
@@ -77,7 +77,7 @@ add_custom_command(OUTPUT perlxsi.c
 set_source_files_properties(perlxsi.c PROPERTIES GENERATED true)
 
 add_custom_command(OUTPUT p3dci.obj
-    COMMAND bin2obj ${CMAKE_CURRENT_SOURCE_DIR}/p3dci.icc p3dci.obj
+    COMMAND "$<TARGET_FILE:bin2obj>" ${CMAKE_CURRENT_SOURCE_DIR}/p3dci.icc p3dci.obj
     DEPENDS bin2obj)
 set_source_files_properties(p3dci.obj PROPERTIES EXTERNAL_OBJECT true GENERATED true)
 
