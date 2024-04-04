@@ -26,7 +26,7 @@ else()
         list(APPEND PERL_BUILD "-Accflags=-arch ${CMAKE_OSX_ARCHITECTURES}")
         list(APPEND PERL_BUILD "-Aldflags=-arch ${CMAKE_OSX_ARCHITECTURES}")
     endif()
-    if(UNIX)
+    if(UNIX AND NOT APPLE)
         list(APPEND PERL_BUILD "-Accflags=-fPIC")
     endif()
     list(APPEND PERL_BUILD -Dprivlib=${PERL_PREFIX}/lib && make -j)
@@ -71,7 +71,7 @@ file(WRITE ${CMAKE_CURRENT_BINARY_DIR}/cp.cmake
 add_executable(bin2obj bin2obj.c)
 set(FATPACKER ${CMAKE_CURRENT_SOURCE_DIR}/FatPacker.pm)
 set(LOADER ${CMAKE_CURRENT_SOURCE_DIR}/loader.pl)
-if(UNIX)
+if(UNIX AND NOT APPLE)
     add_custom_command(OUTPUT packed.obj
         COMMAND ${CMAKE_COMMAND} -P cp.cmake
         COMMAND ${PERL_PREFIX}/perl ${FATPACKER} ${LOADER} > packed.pl
@@ -91,7 +91,7 @@ add_custom_command(OUTPUT perlxsi.c
     DEPENDS perl)
 set_source_files_properties(perlxsi.c PROPERTIES GENERATED true)
 
-if(UNIX)
+if(UNIX AND NOT APPLE)
     add_custom_command(OUTPUT p3dci.obj
         COMMAND "cp" ${CMAKE_CURRENT_SOURCE_DIR}/P3DCI.icc ./p3dci.icc
         COMMAND "objcopy" "-I" "binary" "-O" "elf64-x86-64" p3dci.icc p3dci.obj)
@@ -104,7 +104,7 @@ set_source_files_properties(p3dci.obj PROPERTIES EXTERNAL_OBJECT true GENERATED 
 
 # Build exiftool-dll C interface
 add_library(exiftool SHARED exiftool.h exiftool.c perlxsi.c packed.obj)
-if(UNIX)
+if(UNIX AND NOT APPLE)
     target_compile_options(exiftool PRIVATE -fPIC)
 endif()
 target_link_libraries(exiftool PRIVATE perl)
@@ -119,7 +119,7 @@ if(MSVC)
 endif()
 
 add_executable(test test.c p3dci.obj)
-if(UNIX)
+if(UNIX AND NOT APPLE)
     target_compile_options(test PRIVATE -fPIC)
     #target_link_libraries(test PRIVATE perl)
 endif()
