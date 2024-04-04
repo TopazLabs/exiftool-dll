@@ -21,10 +21,13 @@ if(MSVC)
     list(TRANSFORM PERL_EXTS REPLACE "([^\/]+)$" "\\1/\\1.lib")
 else()
     list(JOIN PERL_EXTS " " PERL_EXTS_STRING)
-    set(PERL_BUILD ./configure -des -Dusemultiplicity -Dstatic_ext=${PERL_EXTS_STRING})
+    set(PERL_BUILD ./Configure -des -Dusemultiplicity -Dstatic_ext=${PERL_EXTS_STRING})
     if(CMAKE_OSX_ARCHITECTURES)
         list(APPEND PERL_BUILD "-Accflags=-arch ${CMAKE_OSX_ARCHITECTURES}")
         list(APPEND PERL_BUILD "-Aldflags=-arch ${CMAKE_OSX_ARCHITECTURES}")
+    endif()
+    if(UNIX)
+        list(APPEND PERL_BUILD "-Accflags=-fPIC")
     endif()
     list(APPEND PERL_BUILD -Dprivlib=${PERL_PREFIX}/lib && make -j)
     set(PERL_STATIC_LIB ${PERL_PREFIX}/libperl.a)
@@ -48,10 +51,14 @@ if(MSVC)
         oldnames.lib kernel32.lib user32.lib advapi32.lib
         comctl32.lib ws2_32.lib ucrt.lib vcruntime.lib libcmt.lib)
     target_link_options(perl INTERFACE /NODEFAULTLIB)
-else()
+elseif(APPLE)
     target_compile_definitions(perl INTERFACE MULTIPLICITY PERL_DARWIN PERL_USE_SAFE_PUTENV)
     target_link_libraries(perl INTERFACE ${PERL_STATIC_LIB} ${PERL_EXTS})
     target_link_options(perl INTERFACE -mmacosx-version-min=12.2 -fstack-protector-strong)
+else()
+    target_compile_definitions(perl INTERFACE MULTIPLICITY)
+    target_link_libraries(perl INTERFACE ${PERL_STATIC_LIB} ${PERL_EXTS} m crypt)
+    target_link_options(perl INTERFACE -fstack-protector-strong)
 endif()
 
 # Copy perl modules at configuration step
@@ -64,11 +71,19 @@ file(WRITE ${CMAKE_CURRENT_BINARY_DIR}/cp.cmake
 add_executable(bin2obj bin2obj.c)
 set(FATPACKER ${CMAKE_CURRENT_SOURCE_DIR}/FatPacker.pm)
 set(LOADER ${CMAKE_CURRENT_SOURCE_DIR}/loader.pl)
+if(UNIX)
+    add_custom_command(OUTPUT packed.obj
+        COMMAND ${CMAKE_COMMAND} -P cp.cmake
+        COMMAND ${PERL_PREFIX}/perl ${FATPACKER} ${LOADER} > packed.pl
+        COMMAND "objcopy" "-I" "binary" "-O" "elf64-x86-64" packed.pl packed.obj
+        DEPENDS perl bin2obj ${FATPACKER} ${LOADER})
+else()
 add_custom_command(OUTPUT packed.obj
     COMMAND ${CMAKE_COMMAND} -P cp.cmake
     COMMAND ${PERL_PREFIX}/perl ${FATPACKER} ${LOADER} > packed.pl
     COMMAND "$<TARGET_FILE:bin2obj>" packed.pl packed.obj
     DEPENDS perl bin2obj ${FATPACKER} ${LOADER})
+endif()
 set_source_files_properties(packed.obj PROPERTIES EXTERNAL_OBJECT true GENERATED true)
 
 add_custom_command(OUTPUT perlxsi.c
@@ -76,13 +91,22 @@ add_custom_command(OUTPUT perlxsi.c
     DEPENDS perl)
 set_source_files_properties(perlxsi.c PROPERTIES GENERATED true)
 
-add_custom_command(OUTPUT p3dci.obj
-    COMMAND "$<TARGET_FILE:bin2obj>" ${CMAKE_CURRENT_SOURCE_DIR}/p3dci.icc p3dci.obj
-    DEPENDS bin2obj)
+if(UNIX)
+    add_custom_command(OUTPUT p3dci.obj
+        COMMAND "cp" ${CMAKE_CURRENT_SOURCE_DIR}/P3DCI.icc ./p3dci.icc
+        COMMAND "objcopy" "-I" "binary" "-O" "elf64-x86-64" p3dci.icc p3dci.obj)
+else()
+    add_custom_command(OUTPUT p3dci.obj
+        COMMAND "$<TARGET_FILE:bin2obj>" ${CMAKE_CURRENT_SOURCE_DIR}/p3dci.icc p3dci.obj
+        DEPENDS bin2obj)
+endif()
 set_source_files_properties(p3dci.obj PROPERTIES EXTERNAL_OBJECT true GENERATED true)
 
 # Build exiftool-dll C interface
 add_library(exiftool SHARED exiftool.h exiftool.c perlxsi.c packed.obj)
+if(UNIX)
+    target_compile_options(exiftool PRIVATE -fPIC)
+endif()
 target_link_libraries(exiftool PRIVATE perl)
 target_compile_definitions(exiftool PRIVATE EXIFTOOL_EXPORTS)
 if(MSVC)
@@ -95,6 +119,10 @@ if(MSVC)
 endif()
 
 add_executable(test test.c p3dci.obj)
+if(UNIX)
+    target_compile_options(test PRIVATE -fPIC)
+    #target_link_libraries(test PRIVATE perl)
+endif()
 target_link_libraries(test PRIVATE exiftool)
 
 # Install dll and headers
