@@ -128,3 +128,4 @@ target_link_libraries(test PRIVATE exiftool)
 # Install dll and headers
 install(TARGETS exiftool EXPORT exiftool)
 install(FILES exiftool.h DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
+install(FILES ${PERL_PREFIX}/lib/Config_git.pl DESTINATION ${CMAKE_INSTALL_LIBDIR})
