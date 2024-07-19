@@ -68,11 +68,11 @@ static void write_mach(FILE *out, char *name, FILE *embed, uint32_t size) {
     uint32_t cmd0_len = sizeof(struct mach_segment) + sizeof(struct mach_section);
     uint32_t cmd1_len = sizeof(struct mach_symtab);
     uint32_t name_len = (uint32_t)strlen(name) + 3;
-    uint32_t strs_len = (name_len * 2 + 8) & ~3;
+    uint32_t strs_len = name_len * 2 + 8;
 
-    uint32_t sym_offset = head_len + cmd0_len + cmd1_len;
+    uint32_t emb_offset = head_len + cmd0_len + cmd1_len;
+    uint32_t sym_offset = emb_offset + sizeof(size) + size;
     uint32_t str_offset = sym_offset + sizeof(struct mach_nlist) * 2;
-    uint32_t emb_offset = str_offset + strs_len;
 
     /* write out header */
     struct mach_header header = {0};
@@ -106,7 +106,7 @@ static void write_mach(FILE *out, char *name, FILE *embed, uint32_t size) {
     section.offset = emb_offset;
     fwrite(&section, sizeof(section), 1, out);
 
-    /* create symbol table */
+    /* declare symbol table */
     struct mach_symtab symtab = {0};
     symtab.cmd = 0x02;
     symtab.cmdsize = cmd1_len;
@@ -116,6 +116,13 @@ static void write_mach(FILE *out, char *name, FILE *embed, uint32_t size) {
     symtab.strsize = strs_len;
     fwrite(&symtab, sizeof(symtab), 1, out);
 
+    /* write out embed data */
+    fwrite(&size, sizeof(size), 1, out);
+    for (uint32_t i = 0; i < size - 1; ++i)
+        fputc(fgetc(embed), out);
+    fputc('\0', out);
+
+    /* write out symbol table */
     struct mach_nlist nlist = {0};
     nlist.n_type = 0x0f;
     nlist.n_sect = 1;
@@ -130,12 +137,6 @@ static void write_mach(FILE *out, char *name, FILE *embed, uint32_t size) {
     sprintf(strtab + nlist.n_strx, "__%s", name);
     fwrite(strtab, strs_len, 1, out);
     free(strtab);
-
-    /* write out embed data */
-    fwrite(&size, sizeof(size), 1, out);
-    for (uint32_t i = 0; i < size - 1; ++i)
-        fputc(fgetc(embed), out);
-    fputc('\0', out);
 }
 
 /* adapted from filehdr.h */
