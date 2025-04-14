@@ -2,6 +2,23 @@ name: Build
 on: push
 
 jobs:
+  linux:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          submodules: recursive
+      - name: Build exiftool-dll
+        run: |
+          cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
+          cmake --build build --config Release
+          cmake --install build --prefix install
+      - name: Upload artifacts
+        uses: actions/upload-artifact@master
+        with:
+          name: exiftool-dll-linux
+          path: install
+
   macos:
     runs-on: macos-latest
     steps:

@@ -3,9 +3,10 @@ project(exiftool VERSION 0.1.0 LANGUAGES C)
 include(ExternalProject)
 include(GNUInstallDirs)
 
-set(PERL_MODULES bytes.pm Carp.pm Compress Config.pm constant.pm Digest DynaLoader.pm Exporter.pm
-    Exporter Fcntl.pm File integer.pm IO IO.pm List overload.pm overloading.pm overload
-    Scalar SelectSaver.pm strict.pm Symbol.pm Time utf8.pm vars.pm warnings.pm warnings XSLoader.pm)
+set(PERL_MODULES bytes.pm Carp.pm Compress Config.pm Config_git.pl constant.pm
+    Digest DynaLoader.pm Exporter.pm Exporter Fcntl.pm File integer.pm IO IO.pm
+    List overload.pm overloading.pm overload Scalar SelectSaver.pm strict.pm
+    Symbol.pm Time utf8.pm vars.pm warnings.pm warnings XSLoader.pm)
 set(PERL_EXTS Compress/Raw/Zlib Digest/MD5 Fcntl File/Glob IO List/Util Time/HiRes Time/Piece)
 
 # Build perl with autotools
@@ -21,15 +22,13 @@ if(MSVC)
     list(TRANSFORM PERL_EXTS REPLACE "([^\/]+)$" "\\1/\\1.lib")
 else()
     list(JOIN PERL_EXTS " " PERL_EXTS_STRING)
-    set(PERL_BUILD ./Configure -des -Dusemultiplicity -Dstatic_ext=${PERL_EXTS_STRING})
+    set(PERL_BUILD ./Configure -des -Dusemultiplicity
+        -Dfirstmakefile=Makefile0 -Dstatic_ext=${PERL_EXTS_STRING})
     if(CMAKE_OSX_ARCHITECTURES)
         list(APPEND PERL_BUILD "-Accflags=-arch ${CMAKE_OSX_ARCHITECTURES}")
         list(APPEND PERL_BUILD "-Aldflags=-arch ${CMAKE_OSX_ARCHITECTURES}")
     endif()
-    if(UNIX AND NOT APPLE)
-        list(APPEND PERL_BUILD "-Accflags=-fPIC")
-    endif()
-    list(APPEND PERL_BUILD -Dprivlib=${PERL_PREFIX}/lib && make -j)
+    list(APPEND PERL_BUILD -Accflags=-fPIC -Dprivlib=${PERL_PREFIX}/lib && make -j)
     set(PERL_STATIC_LIB ${PERL_PREFIX}/libperl.a)
     list(TRANSFORM PERL_EXTS REPLACE "([^\/]+)$" "\\1/\\1.a")
 endif()
