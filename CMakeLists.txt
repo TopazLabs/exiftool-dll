@@ -92,7 +92,7 @@ set_source_files_properties(perlxsi.c PROPERTIES GENERATED true)
 
 if(UNIX AND NOT APPLE)
     add_custom_command(OUTPUT p3dci.obj
-        COMMAND "cp" ${CMAKE_CURRENT_SOURCE_DIR}/P3DCI.icc ./p3dci.icc
+        COMMAND "cp" ${CMAKE_CURRENT_SOURCE_DIR}/p3dci.icc ./p3dci.icc
         COMMAND "objcopy" "-I" "binary" "-O" "elf64-x86-64" p3dci.icc p3dci.obj)
 else()
     add_custom_command(OUTPUT p3dci.obj
